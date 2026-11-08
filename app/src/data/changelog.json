@@ -2,6 +2,9 @@
   {
     "date": "2026-11-08",
     "changes": [
+      "rename — project XR → project rain (repo project-rain, github rainandrage)",
+      "site path /project-rain/",
+      "dropped the \"expand your reality\" tagline",
       "tcg pocket — card modal \"pulled from\": set + pack for each print, plus same-art reprints (e.g. genetic apex cards in deluxe pack: ex)",
       "nav — removed section label next to the burger",
       "current page bolded with a \"<\" marker in the menu, its section auto-expands on open",
@@ -21,7 +24,8 @@
       "header — removed wordmark"
     ],
     "hashes": [
-      "7fc2184",
+      "5e1a66e",
+      "7adb85a",
       "ab533d1"
     ]
   },

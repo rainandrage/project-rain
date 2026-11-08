@@ -1,7 +1,7 @@
 {
-  "name": "project XR",
-  "short_name": "project XR",
-  "description": "expand your reality — a useful and aesthetically pleasing pokémon database",
+  "name": "project rain",
+  "short_name": "project rain",
+  "description": "a useful and aesthetically pleasing pokémon database",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

@@ -1,7 +1,7 @@
 {
-  "name": "project XR (dev)",
-  "short_name": "project XR dev",
-  "description": "local dev build of project XR",
+  "name": "project rain (dev)",
+  "short_name": "project rain dev",
+  "description": "local dev build of project rain",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

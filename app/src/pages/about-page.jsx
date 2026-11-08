@@ -5,8 +5,7 @@ export default function AboutPage() {
     <div className="about-page">
       <aside className="news-about">
         <p className="news-about__brand">
-          <span className="news-about__wordmark">project <span className="news-about__xr">XR</span></span>
-          <span className="news-about__tagline">expand your reality</span>
+          <span className="news-about__wordmark">project <span className="news-about__accent">rain</span></span>
         </p>
         <p>
           this is a personal passion project aimed at creating a useful and aesthetically pleasing
@@ -27,7 +26,7 @@ export default function AboutPage() {
         </p>
         <ul className="news-about__links">
           <li>
-            <a href="https://github.com/shockwaveXR" target="_blank" rel="noopener noreferrer">
+            <a href="https://github.com/rainandrage" target="_blank" rel="noopener noreferrer">
               github
             </a>
           </li>

@@ -1,8 +1,8 @@
-# project XR
+# project rain
 
-**expand your reality** — an ever-expanding passion project aiming to provide a convenient and visually pleasing way to explore the world of pokemon.
+an ever-expanding passion project aiming to provide a convenient and visually pleasing way to explore the world of pokemon.
 
-live at [shockwavexr.github.io/project-xr](https://shockwavexr.github.io/project-xr)
+live at [rainandrage.github.io/project-rain](https://rainandrage.github.io/project-rain)
 
 ## what's inside
 

@@ -35,7 +35,7 @@ const path  = require('path');
 const API         = 'https://archives.bulbagarden.net/w/api.php';
 const OUTPUT_PATH = path.join(__dirname, '../../app/src/data/tcgp-accessories.json');
 const DELAY_MS    = 250;   // mediawiki recommends ~1 req/sec for unauth; we go slightly faster
-const UA          = 'pokedex-scraper (https://github.com/shockwaveXR/pokedex)';
+const UA          = 'pokedex-scraper (https://github.com/rainandrage/project-rain)';
 
 const CATEGORIES = [
   {

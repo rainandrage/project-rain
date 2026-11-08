@@ -21,7 +21,7 @@ const path  = require('path');
 
 const API       = 'https://bulbapedia.bulbagarden.net/w/api.php';
 const OUT_PATH  = path.join(__dirname, '../../app/src/data/gym-leaders.json');
-const UA        = 'pokedex-data-scraper/1.0 (https://github.com/shockwaveXR/pokedex)';
+const UA        = 'pokedex-data-scraper/1.0 (https://github.com/rainandrage/project-rain)';
 const DELAY_MS  = 400;
 
 // section header → metadata. matches the gym-leader article structure.

@@ -22,7 +22,7 @@ import { buildPayload } from '../../scripts/news/news-core.mjs';
 // cloudflare region. override per-request with ?refresh=1 to bypass.
 const CACHE_TTL_SECONDS = 30 * 60;
 
-// the frontend lives at shockwavexr.github.io and the worker lives at
+// the frontend lives at rainandrage.github.io and the worker lives at
 // *.workers.dev — cross-origin, so the browser blocks responses without
 // these headers. '*' is fine because we serve public data with no credentials.
 const CORS_HEADERS = {

@@ -10,7 +10,7 @@ import rawCards from '../data/tcg-pocket.json';
 
 // most card images hot-link limitless's cdn (absolute urls). sets limitless
 // doesn't carry (e.g. SP1) are self-hosted under public/assets/tcgp/ and stored
-// as relative paths — prefix vite's base so they resolve under /project-xr/.
+// as relative paths — prefix vite's base so they resolve under /project-rain/.
 const BASE = import.meta.env?.BASE_URL || '/';
 const resolveImg = (u) => (u && !/^https?:/.test(u) ? BASE + u : u);
 const cards = rawCards.map(c => (/^https?:/.test(c.image_url)

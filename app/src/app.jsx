@@ -635,7 +635,7 @@ export default function App() {
       {typeof document !== 'undefined' && createPortal(
         <footer className="site-footer-strip">
           <a
-            href="https://github.com/shockwaveXR"
+            href="https://github.com/rainandrage"
             target="_blank"
             rel="noopener noreferrer"
             className="site-footer-strip__link"

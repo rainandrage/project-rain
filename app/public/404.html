@@ -5,12 +5,12 @@
       // GitHub Pages project-page SPA fallback: served for any unknown path
       // (deep links / hard refreshes on client-side routes). save the full
       // target so index.html can replay it once the SPA boots, then bounce to
-      // the app root at /project-xr/.
+      // the app root at /project-rain/.
       var loc = window.location;
-      if (loc.pathname !== '/project-xr/') {
+      if (loc.pathname !== '/project-rain/') {
         sessionStorage.setItem('redirect', loc.pathname + loc.search + loc.hash);
       }
-      loc.replace('/project-xr/');
+      loc.replace('/project-rain/');
     </script>
   </head>
   <body></body>

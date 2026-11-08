@@ -32,7 +32,7 @@ const path  = require('path');
 
 const ARCHIVES_API = 'https://archives.bulbagarden.net/w/api.php';
 const OUT_PATH     = path.join(__dirname, '../../app/src/data/gym-leaders.json');
-const UA           = 'pokedex-data-scraper/1.0 (https://github.com/shockwaveXR/pokedex)';
+const UA           = 'pokedex-data-scraper/1.0 (https://github.com/rainandrage/project-rain)';
 const DELAY_MS     = 350;
 
 // ordered newest → oldest. each entry is the canonical filename prefix used
