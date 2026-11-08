@@ -2,6 +2,9 @@
   {
     "date": "2026-11-08",
     "changes": [
+      "icons — rr logo favicon",
+      "\"ra/in\" home-screen + app icons (light/dark follow the device)",
+      "brand master svg in design/brand",
       "rename — project XR → project rain (repo project-rain, github rainandrage)",
       "site path /project-rain/",
       "dropped the \"expand your reality\" tagline",
@@ -24,7 +27,8 @@
       "header — removed wordmark"
     ],
     "hashes": [
-      "5e1a66e",
+      "db697f8",
+      "d08cfbc",
       "7adb85a",
       "ab533d1"
     ]
