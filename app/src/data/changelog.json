@@ -2,6 +2,12 @@
   {
     "date": "2026-11-08",
     "changes": [
+      "phones — new thumb nav: a floating bottom bar (menu with the page name · search · settings) replaces the top buttons, and menus open as sheets above it",
+      "news — compact story rows, an all / tcg / games filter, and the daily spotlight as a compact card above the news",
+      "default theme — brand colors: cool white with blue accents",
+      "search — the search page now has its own search field",
+      "settings — the panel stays open when you change the theme or a11y mode",
+      "ios — dimming behind menus and popups no longer makes safari's top and bottom bars fade in late",
       "icons — rr logo favicon",
       "\"ra/in\" home-screen + app icons (light/dark follow the device)",
       "brand master svg in design/brand",
@@ -25,6 +31,7 @@
       "header — removed wordmark"
     ],
     "hashes": [
+      "004b654",
       "9462515",
       "d08cfbc",
       "7adb85a",

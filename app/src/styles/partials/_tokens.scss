@@ -18,24 +18,33 @@
   --footer-content-h: 15px;
 }
 
+:root {
+  // rainandrage brand — the logo's exact colors. decorative fills, icons and
+  // highlights; text/links use --accent (a deeper shade that passes contrast).
+  --brand-blue:   #7fb2ef;
+  --brand-orange: #f4b65c;
+  --brand-ink:    #000000;
+}
+
+// default theme — brand-led: cool white surfaces, brand-blue accent.
 :root,
 [data-theme='light'] {
-  --bg:           #f5ede0;
-  --bg-card:      #fdf8f0;
-  --bg-sidebar:   #ede3d5;
-  --bg-header:    #fdf8f0;
-  --text:         #2a1f14;
-  --text-muted:   #7a6555;
-  --text-subtle:  #b09a88;
-  --border:       #c2aa8c;
-  --accent:       #7c6fcd;
-  --accent-hover: #6a5fbf;
-  --shadow-sm:    0 1px 3px rgba(80, 55, 30, .08);
-  --shadow-md:    0 4px 16px rgba(80, 55, 30, .12);
-  --shadow-lg:    0 8px 28px rgba(80, 55, 30, .18);
+  --bg:           #f6f8fb;
+  --bg-card:      #ffffff;
+  --bg-sidebar:   #edf1f6;
+  --bg-header:    #ffffff;
+  --text:         #14161a;
+  --text-muted:   #5d6675;
+  --text-subtle:  #8a93a3;
+  --border:       #d5dce6;
+  --accent:       #2f74cf;
+  --accent-hover: #2563a8;
+  --shadow-sm:    0 1px 3px rgba(20, 30, 50, .08);
+  --shadow-md:    0 4px 16px rgba(20, 30, 50, .10);
+  --shadow-lg:    0 8px 28px rgba(20, 30, 50, .16);
   // header dropdowns only — downward-biased (negative spread) so the blur
   // can't bleed UP over the header's bottom border and muddy that line.
-  --shadow-dropdown: 0 16px 24px -12px rgba(80, 55, 30, .3);
+  --shadow-dropdown: 0 16px 24px -12px rgba(20, 30, 50, .26);
   // rounded + friendly default, applied across every theme.
   --radius:       22px;
   --radius-sm:    14px;

@@ -1,0 +1,210 @@
+// ─── thumb nav (phones) ───────────────────────────────────────────────────────
+// on compact screens (≤ 640px — slab phones + the iPhone Duo folded) the
+// header keeps only the sprite strip, and its controls move into a floating
+// bottom bar within thumb reach: [menu · search · settings]. the menu button
+// shows the current page's name. both menus open upward as sheets anchored
+// above the bar. the bar is a body portal (see AppHeader) so pull-to-refresh's
+// transform on #root can't drag it.
+
+$bar-h: 68px;
+$bar-gap: 16px;
+$safe-bottom: env(safe-area-inset-bottom, 0px);
+
+.site-header--compact {
+  height: 52px;
+  padding: 0 16px;
+  justify-content: center;
+}
+
+// keep page content clear of the floating bar
+html body:has(> .bottom-bar) .app-scroll {
+  padding-bottom: calc(#{$bar-h} + #{$bar-gap} * 2 + #{$safe-bottom});
+}
+
+.bottom-bar {
+  position: fixed;
+  left: $bar-gap;
+  right: $bar-gap;
+  bottom: calc(#{$bar-gap} + #{$safe-bottom});
+  z-index: 300;
+  height: $bar-h;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 6px;
+  box-sizing: border-box;
+  // the bar is deliberately the same ink in every theme — it's chrome, like a
+  // native tab bar — with a hairline so it still separates on dark themes.
+  background: #14161a;
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 26px;
+  box-shadow: 0 8px 28px rgba(20, 22, 26, .28);
+
+  // the anchors are plain grid cells here; their sheets position against the
+  // viewport instead of the trigger.
+  .settings-anchor {
+    position: static;
+    display: flex;
+    min-width: 0;
+  }
+
+  .settings-btn,
+  .bottom-bar__search {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 20px;
+    background: transparent;
+    color: #c9ced8;
+    font: inherit;
+    font-size: 12px;
+    font-weight: var(--fw-semibold);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    box-shadow: none;
+    -webkit-tap-highlight-color: transparent;
+
+    svg { width: 22px; height: 22px; flex: none; }
+
+    &:active { background: #2a2e36; }
+  }
+
+  // menu button = "you are here": filled, page name, brand-blue icon
+  // (on the search page the search button takes that role instead)
+  &:not(.bottom-bar--search) .settings-burger,
+  .bottom-bar__search.is-current {
+    background: #2a2e36;
+    color: #ffffff;
+    svg { color: #7fb2ef; }
+  }
+
+  // an open menu/settings button turns brand blue (and the menu shows ✕)
+  .settings-btn[aria-expanded='true'] {
+    background: #7fb2ef;
+    color: #000000;
+    svg { color: #000000; }
+  }
+
+  &__label {
+    max-width: 100%;
+    padding: 0 6px;
+    box-sizing: border-box;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  // ── sheets ──
+  .settings-modal {
+    position: fixed;
+    top: auto;
+    left: 12px;
+    right: 12px;
+    bottom: calc(#{$bar-gap} + #{$bar-h} + 10px + #{$safe-bottom});
+    width: auto;
+    min-width: 0;
+    max-height: calc(100dvh - #{$bar-h} - 120px - #{$safe-bottom});
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 12px;
+    border-radius: 28px;
+    box-shadow: 0 12px 40px rgba(20, 22, 26, .3);
+    transform-origin: bottom center;
+  }
+
+  // nav sheet: big, thumb-sized rows
+  .features-modal {
+    padding: 8px;
+    left: 12px;
+    right: 12px;
+  }
+
+  .feature-link {
+    display: flex;
+    align-items: center;
+    min-height: 50px;
+    padding: 0 16px;
+    font-size: 1.15rem;
+    border-radius: 16px;
+  }
+
+  .feature-link--nested {
+    min-height: 46px;
+    padding-left: 28px;
+    font-size: 1.05rem;
+  }
+
+  .nav-section-label--toggle {
+    min-height: 50px;
+    padding: 0 16px;
+    font-size: 1.15rem;
+    border-radius: 16px;
+  }
+}
+
+.bottom-bar-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 299;
+  background: rgba(20, 22, 26, .45);
+  animation: fade-in .2s ease;
+  &.closing { opacity: 0; transition: opacity .2s ease; }
+}
+
+// ─── dimming backdrops vs. iOS Safari's edge tinting ──────────────────────────
+// recent iOS Safari tints the status-bar strip and its bottom toolbar from
+// whatever fixed element touches the top / bottom edge, and cross-fades with a
+// visible lag. a full-bleed dark backdrop made those strips fade dark a beat
+// after every menu / modal opened. on touch screens the backdrop element stays
+// full-screen (so a tap anywhere still closes it) but is transparent; the dim
+// itself is an inner layer kept off the top (header) and bottom (home
+// indicator) edges, so Safari has nothing new to sample.
+@media (hover: none) and (pointer: coarse) {
+  :root {
+    --dim-top: 60px;                                 // site header
+    --dim-bottom: env(safe-area-inset-bottom, 0px);  // home indicator
+  }
+  // compact: safari's bottom toolbar (back / forward / share) floats over
+  // the page and isn't covered by the safe-area inset, so a dim reaching the
+  // bottom edge re-tinted it with a lag — but stopping the dim at the bar
+  // left a hard, undimmed band. instead the dim runs to the bottom and fades
+  // out across the bar zone, reaching zero only at the very edge.
+  body:has(> .bottom-bar) {
+    --dim-top: 52px;
+    --dim-bottom: 0px;
+    --dim-fade: calc(#{$bar-gap} + #{$bar-h} + #{$safe-bottom});
+  }
+
+  .ability-modal-overlay,
+  .sprite-modal-overlay,
+  .form-picker-overlay,
+  .bottom-bar-scrim {
+    --dim-color: rgba(20, 22, 26, .45);
+    background: transparent !important;
+    isolation: isolate;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: var(--dim-top);
+      bottom: var(--dim-bottom);
+      z-index: -1;
+      background: var(--dim-color);
+      pointer-events: none;
+      // bottom fade (compact only — --dim-fade is 0 elsewhere)
+      -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - var(--dim-fade, 0px)), transparent 100%);
+              mask-image: linear-gradient(to bottom, #000 calc(100% - var(--dim-fade, 0px)), transparent 100%);
+    }
+  }
+  .sprite-modal-overlay { --dim-color: rgba(0, 0, 0, .6); }
+}

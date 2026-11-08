@@ -55,72 +55,37 @@ function formatRelative(iso) {
   return null;
 }
 
-function NewsMedia({ entry }) {
-  if (entry.youtube_id) {
-    return (
-      <div className="news-media news-media--youtube">
-        <iframe
-          src={`https://www.youtube-nocookie.com/embed/${entry.youtube_id}`}
-          title={entry.title}
-          loading="lazy"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        />
-      </div>
-    );
-  }
-  if (entry.image) {
-    return (
-      <div className="news-media news-media--image">
-        <a href={entry.url || '#'} target="_blank" rel="noopener noreferrer">
-          <img
-            src={entry.image}
-            alt=""
-            loading="lazy"
-            referrerPolicy="no-referrer"
-          />
-        </a>
-      </div>
-    );
-  }
+// thumbnail for a news row: the article image, a youtube entry's video still,
+// or (no image) a tinted tile carrying the entry's label.
+function newsThumb(entry) {
+  if (entry.image) return entry.image;
+  if (entry.youtube_id) return `https://i.ytimg.com/vi/${entry.youtube_id}/mqdefault.jpg`;
   return null;
 }
 
+// compact news row — the whole row is the link (no separate "read on…" link).
+// thumb · 2-line headline · "label · source · age".
 function NewsEntry({ entry }) {
   const rel = formatRelative(entry.published);
+  const age = rel ? rel.replace(/ ago$/, '') : formatDate(entry.published);
+  const thumb = newsThumb(entry);
   return (
-    <article className="news-entry">
-      <div className="news-entry__head">
-        <span className="news-entry__label">{entry.label}</span>
-        <span className="news-entry__dot" aria-hidden="true">•</span>
-        <span className="news-entry__source">{entry.source_name}</span>
-        <span className="news-entry__spacer" />
-        <time className="news-entry__date" dateTime={entry.published || undefined}>
-          {formatDate(entry.published)}
-          {rel && <span className="news-entry__rel"> ({rel})</span>}
-        </time>
-      </div>
-
-      <h2 className="news-entry__title">
-        <a href={entry.url || '#'} target="_blank" rel="noopener noreferrer">
-          {entry.title}
-        </a>
-      </h2>
-
-      <NewsMedia entry={entry} />
-
-      {entry.excerpt && <p className="news-entry__excerpt">{entry.excerpt}</p>}
-
-      <div className="news-entry__foot">
-        <a
-          className="news-entry__read"
-          href={entry.url || '#'}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          read on {entry.source_name} →
-        </a>
-      </div>
+    <article className="news-row">
+      <a className="news-row__link" href={entry.url || '#'} target="_blank" rel="noopener noreferrer">
+        {thumb ? (
+          <img className="news-row__thumb" src={thumb} alt="" loading="lazy" referrerPolicy="no-referrer" />
+        ) : (
+          <span className="news-row__thumb news-row__thumb--empty" aria-hidden="true">{entry.label}</span>
+        )}
+        <span className="news-row__body">
+          <span className="news-row__title">{entry.title}</span>
+          <span className="news-row__meta">
+            <span className="news-row__label">{entry.label}</span>
+            {' · '}{entry.source_name}
+            {' · '}<time dateTime={entry.published || undefined}>{age}</time>
+          </span>
+        </span>
+      </a>
     </article>
   );
 }
@@ -151,10 +116,20 @@ async function fetchLiveNews(signal, bypassCache = false) {
 const INITIAL_VISIBLE = 10;
 const PAGE_STEP = 10;
 
+// filter buckets for the news toggle, from each entry's label
+const NEWS_FILTERS = ['all', 'tcg', 'games'];
+function newsCategory(entry) {
+  const label = (entry.label || '').toLowerCase();
+  if (label.includes('tcg')) return 'tcg';
+  if (label === 'anime' || label === 'competitive') return 'other';
+  return 'games';
+}
+
 export default function NewsPage() {
   const [data, setData]     = useState(null);
   const [status, setStatus] = useState('loading');
   const [visible, setVisible] = useState(INITIAL_VISIBLE);
+  const [filter, setFilter] = useState('all');
 
   // shared refresh function — used both for the initial mount load and for
   // pull-to-refresh in standalone webapp mode. AbortController gives us
@@ -181,84 +156,53 @@ export default function NewsPage() {
   useEffect(() => { refresh(); }, [refresh]);
   const refreshFresh = useCallback(() => refresh(true), [refresh]);
 
-  // explicit spin state so the refresh button has a guaranteed feedback
-  // window (≥1.2s) even when the worker's edge cache returns in 60ms.
-  // without this the icon would flash briefly and the user wouldn't see
-  // any visual ack of their click.
-  const [spinning, setSpinning] = useState(false);
-  const handleRefreshClick = useCallback(async () => {
-    if (spinning) return;
-    setSpinning(true);
-    const t0 = Date.now();
-    try { await refreshFresh(); }
-    finally {
-      const elapsed = Date.now() - t0;
-      const MIN_SPIN_MS = 1200;
-      if (elapsed < MIN_SPIN_MS) {
-        await new Promise(r => setTimeout(r, MIN_SPIN_MS - elapsed));
-      }
-      setSpinning(false);
-    }
-  }, [spinning, refreshFresh]);
+  const { entries = [], updated } = data || {};
+  // "2:12 am" when it's today, "nov 7, 2:12 am" otherwise
+  const updatedText = (() => {
+    if (!updated) return null;
+    const d = new Date(updated);
+    const today = d.toDateString() === new Date().toDateString();
+    return d.toLocaleString('en-US', today
+      ? { hour: 'numeric', minute: '2-digit' }
+      : { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).toLowerCase();
+  })();
 
-  const { entries = [], updated, sources = [] } = data || {};
-  const updatedText = updated
-    ? new Date(updated).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }).toLowerCase()
-    : null;
-
-  // the very first mount load is special: there's nothing to "refresh" yet,
-  // so we don't show a refresh affordance. instead the control renders as a
-  // non-interactive "fetching" pill that morphs into the refresh button once
-  // the initial pull lands (the spinner ring swaps to the circular arrow,
-  // which animates in). a manual refresh (status already 'live'/'fallback')
-  // keeps the normal spinning-arrow behavior.
   const isInitialLoad = status === 'loading';
-  // single source of truth for "refresh in flight": either an explicit
-  // click that's still in its min-spin window, or the initial-mount load.
-  const isRefreshing = spinning || isInitialLoad;
+
+  // all / tcg / games filter (sits where the refresh button used to —
+  // touch refreshes by pulling). anime + competitive only show under "all".
+  const shown = filter === 'all' ? entries : entries.filter(e => newsCategory(e) === filter);
 
   return (
     <div className="news-page">
       <PullToRefresh onRefresh={refreshFresh} />
       <Spotlight />
       <header className="news-page__header">
-        <button
-          type="button"
-          className={`news-page__refresh${isInitialLoad ? ' news-page__refresh--loading' : ''}`}
-          onClick={handleRefreshClick}
-          disabled={isRefreshing}
-          aria-label={isRefreshing ? 'fetching news' : 'refresh news'}
-          title={isInitialLoad ? 'fetching latest news' : 'refresh'}
-        >
-          <span className="news-page__refresh-label">
-            {isRefreshing ? 'fetching' : 'refresh'}
-          </span>
-          <span className="news-page__refresh-icon" aria-hidden="true">
-            {isInitialLoad ? (
-              <span className="news-page__refresh-spinner" />
-            ) : (
-              <svg className="news-page__refresh-arrow" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M13.5 2.5v4h-4" />
-                <path d="M13.5 6.5a5.5 5.5 0 1 0-1.5 5.7" />
-              </svg>
-            )}
-          </span>
-        </button>
-        {sources.length > 0 && (
-          <p className="news-page__sources">
-            sources: {sources.map(s => s.name).join(', ')}
-          </p>
-        )}
-        {/* during the initial load the fetching pill (above) is the only
-            status indicator — no redundant "refreshing…" tag here. */}
-        {!isInitialLoad && updatedText ? (
-          <p className="news-page__updated">
-            updated {updatedText}
-            {status === 'fallback' && (
-              <> · <span className="news-page__tag news-page__tag--warn">using cached copy</span></>
-            )}
-          </p>
-        ) : null}
+        <div className="news-page__heading">
+          <h1 className="news-page__title">news</h1>
+          {!isInitialLoad && updatedText ? (
+            <p className="news-page__updated">
+              updated {updatedText}
+              {status === 'fallback' && (
+                <> · <span className="news-page__tag news-page__tag--warn">using cached copy</span></>
+              )}
+            </p>
+          ) : null}
+          <p className="news-page__hint">pull to refresh</p>
+        </div>
+        <div className="news-filter" role="group" aria-label="filter news">
+          {NEWS_FILTERS.map(f => (
+            <button
+              key={f}
+              type="button"
+              className={`news-filter__opt${filter === f ? ' is-on' : ''}`}
+              aria-pressed={filter === f}
+              onClick={() => { setFilter(f); setVisible(INITIAL_VISIBLE); }}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
       </header>
 
       {status === 'loading' ? (
@@ -272,18 +216,17 @@ export default function NewsPage() {
         <p className="news-page__empty">
           no entries yet — run <code>node news/fetch-news.mjs</code> from <code>scripts/</code>.
         </p>
+      ) : shown.length === 0 ? (
+        <p className="news-page__empty">no {filter} news right now.</p>
       ) : (
         <>
           <div className="news-list">
-            {entries.slice(0, visible).map((e, i) => (
-              <div key={e.id} className="news-list__item">
-                {i > 0 && <hr className="news-divider" />}
-                <NewsEntry entry={e} />
-              </div>
+            {shown.slice(0, visible).map((e) => (
+              <NewsEntry key={e.id} entry={e} />
             ))}
           </div>
 
-          {visible < entries.length && (
+          {visible < shown.length && (
             <button className="load-more-btn" onClick={() => setVisible(v => v + PAGE_STEP)}>
               show more
             </button>

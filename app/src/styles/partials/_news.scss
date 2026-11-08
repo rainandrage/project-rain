@@ -581,3 +581,158 @@
   .news-entry__head  { font-size: .68rem; }
   .news-divider      { margin: 22px 0; }
 }
+
+// ─── news page v2: header + compact rows (2026-11 redesign) ─────────────────
+// title stack (news / updated / pull-to-refresh) with a round refresh button
+// on pointer screens; entries are scannable rows: thumb · 2-line headline ·
+// "label · source · age", the whole row one tap target.
+.news-page .news-page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 8px;
+}
+
+.news-page__heading {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.news-page .news-page__title {
+  margin: 0;
+  height: auto;
+  display: block;
+  font-size: 1.9rem;
+  line-height: 1.1;
+  font-weight: var(--fw-bold);
+  letter-spacing: -.01em;
+}
+
+.news-page .news-page__updated,
+.news-page__hint {
+  margin: 2px 0 0;
+  font-size: .9rem;
+  line-height: 1.3;
+  color: var(--text-muted);
+}
+.news-page__hint { margin-top: 0; }
+
+// "pull to refresh" only means something on touch screens
+@media (hover: hover) and (pointer: fine) {
+  .news-page__hint { display: none; }
+}
+
+// all / tcg / games segmented toggle (header, right)
+.news-filter {
+  flex: none;
+  display: flex;
+  padding: 3px;
+  background: var(--bg-sidebar);
+  border-radius: 14px;
+
+  &__opt {
+    min-width: 44px;
+    height: 38px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 11px;
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: .95rem;
+    font-weight: var(--fw-semibold);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+
+    &.is-on {
+      background: var(--bg-card);
+      color: var(--text);
+      font-weight: var(--fw-bold);
+      box-shadow: var(--shadow-sm);
+    }
+  }
+}
+
+.news-row {
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+
+  &__link {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 12px 0;
+    color: var(--text);
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+
+    &:active { opacity: .7; }
+    @media (hover: hover) and (pointer: fine) {
+      &:hover .news-row__title { color: var(--accent); }
+    }
+  }
+
+  &__thumb {
+    flex: none;
+    width: 96px;
+    height: 72px;
+    border-radius: 14px;
+    object-fit: cover;
+    background: var(--bg-sidebar);
+
+    &--empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px;
+      box-sizing: border-box;
+      text-align: center;
+      font-size: .78rem;
+      font-weight: var(--fw-bold);
+      line-height: 1.15;
+      color: var(--accent);
+      background: color-mix(in srgb, var(--brand-blue) 22%, var(--bg-card));
+    }
+  }
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  &__title {
+    font-size: 1.05rem;
+    font-weight: var(--fw-bold);
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    transition: color .15s ease;
+  }
+
+  &__meta {
+    font-size: .85rem;
+    color: var(--text-muted);
+  }
+
+  &__label {
+    font-weight: var(--fw-bold);
+    color: var(--accent);
+  }
+}
+
+// bigger thumbs where there's room (tablet / desktop)
+@media (min-width: 641px) {
+  .news-row__thumb { width: 160px; height: 96px; }
+  .news-row__title { font-size: 1.15rem; }
+}
+
+// phones: tighter top margin under the slim sprite band
+@media (max-width: 640px) {
+  .news-page { margin-top: 16px; padding: 0 16px; }
+}

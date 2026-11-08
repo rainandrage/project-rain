@@ -21,14 +21,9 @@
 //     safari webkit bug where createMediaElementSource() outputs silence (why
 //     the cry was mute on the mac but fine on iphone/ipad).
 //
-// minimize: card *defaults to collapsed* on first visit and whenever the
-// date rolls over (less intrusive; expansion is a deliberate engagement).
-// once the user expands or re-collapses, that preference is persisted in
-// localStorage for the rest of the day. next day it resets to collapsed.
-//
-// transition: collapsed/expanded share the same DOM. body wraps in a
-// grid-template-rows 1fr ↔ 0fr animation (modern CSS trick that lets us
-// transition to/from intrinsic height without measuring at runtime).
+// layout (2026-11 redesign): a compact always-open card — kicker, name +
+// cry button, "#id · types · gen · region", artwork on the right. the old
+// collapsible card (and its per-day minimize state) is gone.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -37,8 +32,6 @@ import { getPokemonById } from '../utils/api';
 import { formatName } from '../utils/format-name';
 
 const POOL = ALL.filter(p => p.id <= 1025).map(p => p.id);
-
-const STORAGE_KEY = 'spotlight-minimize';
 
 // gen → region. nothing else in the app needs this mapping (region maps
 // page is still a deferred TODO), so it lives locally rather than as a
@@ -90,8 +83,7 @@ function hashDate(yyyy_mm_dd) {
   return h >>> 0;
 }
 
-// local date as YYYY-MM-DD. used as both the seed input and the
-// "lastSeenDate" comparison key for the minimize override.
+// local date as YYYY-MM-DD — the seed input for today's pick.
 function todayKey() {
   const d = new Date();
   const y = d.getFullYear();
@@ -100,35 +92,8 @@ function todayKey() {
   return `${y}-${m}-${day}`;
 }
 
-// "May 31, 2026" — display only; not used for storage or hashing.
-function formatDisplay() {
-  return new Date().toLocaleDateString('en-US', {
-    year:  'numeric',
-    month: 'long',
-    day:   'numeric',
-  });
-}
-
 function pickTodayId(dateKey) {
   return POOL[hashDate(dateKey) % POOL.length];
-}
-
-function readMinimizeState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { minimized: true, lastSeenDate: null };
-    const parsed = JSON.parse(raw);
-    return {
-      minimized:    !!parsed.minimized,
-      lastSeenDate: parsed.lastSeenDate || null,
-    };
-  } catch {
-    return { minimized: true, lastSeenDate: null };
-  }
-}
-
-function writeMinimizeState(state) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
 }
 
 // two cry sources (see the platform note at the top of the file):
@@ -161,7 +126,6 @@ const CRY_VOLUME = CRY_BASE_VOLUME * CRY_VOLUME_MODIFIER;
 
 export default function Spotlight() {
   const dateKey     = useMemo(todayKey, []);
-  const dateDisplay = useMemo(formatDisplay, []);
   const todayId     = useMemo(() => pickTodayId(dateKey), [dateKey]);
 
   const [pokemon, setPokemon] = useState(null);
@@ -175,16 +139,6 @@ export default function Spotlight() {
   const audioCtxRef = useRef(null);
   const gainRef     = useRef(null);
 
-  // default-to-minimized: if the stored lastSeenDate isn't today's, the
-  // card greets the user COLLAPSED — same behavior for first visit ever +
-  // for any day-rollover. only respect the persisted minimized=false (an
-  // explicit expansion) when the user has already interacted today.
-  const [minimized, setMinimized] = useState(() => {
-    const s = readMinimizeState();
-    if (s.lastSeenDate !== dateKey) return true;
-    return s.minimized;
-  });
-
   useEffect(() => {
     let cancelled = false;
     getPokemonById(todayId)
@@ -192,12 +146,6 @@ export default function Spotlight() {
       .catch(() => {});
     return () => { cancelled = true; };
   }, [todayId]);
-
-  function toggleMinimize() {
-    const next = !minimized;
-    setMinimized(next);
-    writeMinimizeState({ minimized: next, lastSeenDate: dateKey });
-  }
 
   function playCry() {
     let a = audioRef.current;
@@ -248,102 +196,35 @@ export default function Spotlight() {
     ? `gen ${pokemon.generation}${region ? ` · ${region}` : ''}`
     : null;
 
+  const typesText = pokemon.types?.join(' / ');
+  const meta = [`#${String(pokemon.id).padStart(3, '0')}`, typesText, originText].filter(Boolean).join(' · ');
+
+  // compact card (2026-11 redesign): kicker · name (+ cry) · meta, artwork on
+  // the right. the name is a stretched link, so the whole card opens the
+  // pokémon's page; the cry button sits above that link layer.
   return (
-    <article className={`spotlight ${minimized ? 'spotlight--minimized' : ''}`}>
-      {/* whole header is the toggle button. minimized: clicking anywhere
-          on the strip expands (more forgiving target than a tiny chevron-
-          only hit area). expanded: clicking the title bar collapses, while
-          body interactive children (artwork link, cry, cta) keep their
-          own click handlers because they live outside this button. */}
-      <button
-        type="button"
-        className="spotlight__header"
-        onClick={toggleMinimize}
-        aria-label={minimized ? 'expand daily pokémon spotlight' : 'minimize daily pokémon spotlight'}
-        title={minimized ? 'expand' : 'minimize'}
-      >
-        <span className="spotlight__chev spotlight__chev--left" aria-hidden="true">
-          <ChevronDown />
-        </span>
-        <span className="spotlight__header-text">
-          <span className="spotlight__title">daily pokémon spotlight</span>
-        </span>
-        <span className="spotlight__date">{dateDisplay}</span>
-        <span className="spotlight__chev spotlight__chev--right" aria-hidden="true">
-          {minimized ? <ChevronDown /> : <ChevronUp />}
-        </span>
-      </button>
-
-      {/* grid-template-rows 1fr ↔ 0fr animates to/from intrinsic height.
-          inner min-height:0 + overflow:hidden are critical — without them
-          the row track ignores grid-template-rows on collapse. */}
-      <div className="spotlight__body-wrap">
-        <div className="spotlight__body">
-          <Link
-            to={`/pokemon/${pokemon.id}`}
-            className="spotlight__artwork-link"
-            aria-label={`open ${displayName} full pokédex page`}
-            tabIndex={minimized ? -1 : 0}
-          >
-            {artwork && (
-              <img
-                src={artwork}
-                alt={displayName}
-                className="spotlight__artwork"
-                loading="lazy"
-              />
-            )}
+    <article className="spotlight-card">
+      <div className="spotlight-card__info">
+        <span className="spotlight-card__kicker">today's spotlight</span>
+        <div className="spotlight-card__name-row">
+          <Link to={`/pokemon/${pokemon.id}`} className="spotlight-card__name">
+            {displayName}
           </Link>
-
-          <div className="spotlight__info">
-            <div className="spotlight__id-row">
-              <span className="spotlight__id">
-                #{String(pokemon.id).padStart(3, '0')}
-              </span>
-              {originText && <span className="spotlight__origin">{originText}</span>}
-              <button
-                type="button"
-                className={`spotlight__cry${playing ? ' spotlight__cry--playing' : ''}`}
-                onClick={playCry}
-                aria-label={playing ? `playing ${displayName} cry` : `play ${displayName} cry`}
-                title={playing ? 'playing…' : 'play cry'}
-                tabIndex={minimized ? -1 : 0}
-              >
-                <SpeakerIcon />
-              </button>
-            </div>
-
-            <div className="spotlight__name-row">
-              <h2 className="spotlight__name">{displayName}</h2>
-              <div className="spotlight__types">
-                {pokemon.types?.map(t => (
-                  <span key={t} className={`type-badge type-${t}`}>{t}</span>
-                ))}
-              </div>
-            </div>
-
-            {(pokemon.name_jp || pokemon.romaji || pokemon.genus) && (
-              <div className="spotlight__subtitle">
-                {pokemon.name_jp && <span>{pokemon.name_jp}</span>}
-                {pokemon.romaji  && <span>· {pokemon.romaji}</span>}
-                {pokemon.genus   && <span>· {pokemon.genus}</span>}
-              </div>
-            )}
-
-            {pokemon.flavor_text && (
-              <p className="spotlight__flavor">"{pokemon.flavor_text}"</p>
-            )}
-
-            <Link
-              to={`/pokemon/${pokemon.id}`}
-              className="spotlight__cta"
-              tabIndex={minimized ? -1 : 0}
-            >
-              view full pokédex →
-            </Link>
-          </div>
+          <button
+            type="button"
+            className={`spotlight__cry spotlight-card__cry${playing ? ' spotlight__cry--playing' : ''}`}
+            onClick={playCry}
+            aria-label={playing ? `playing ${displayName} cry` : `play ${displayName} cry`}
+            title={playing ? 'playing…' : 'play cry'}
+          >
+            <SpeakerIcon />
+          </button>
         </div>
+        <span className="spotlight-card__meta">{meta}</span>
       </div>
+      {artwork && (
+        <img src={artwork} alt="" className="spotlight-card__art" loading="lazy" />
+      )}
     </article>
   );
 }
@@ -354,22 +235,6 @@ function SpeakerIcon() {
       <path d="M8 2.5L4.5 5.5H2v5h2.5L8 13.5V2.5z" />
       <path className="spotlight__cry-wave spotlight__cry-wave--1" d="M10.5 5.5c.8.6 1.3 1.5 1.3 2.5s-.5 1.9-1.3 2.5l-.6-.8c.6-.4.9-1 .9-1.7s-.3-1.3-.9-1.7l.6-.8z" />
       <path className="spotlight__cry-wave spotlight__cry-wave--2" d="M12 3.5c1.8 1.1 3 3 3 4.5s-1.2 3.4-3 4.5l-.6-.8c1.5-.9 2.4-2.3 2.4-3.7s-.9-2.8-2.4-3.7l.6-.8z" />
-    </svg>
-  );
-}
-
-function ChevronUp() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <polyline points="3,10 8,5 13,10" />
-    </svg>
-  );
-}
-
-function ChevronDown() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <polyline points="3,6 8,11 13,6" />
     </svg>
   );
 }

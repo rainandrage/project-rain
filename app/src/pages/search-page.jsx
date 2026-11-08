@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { searchAll } from '../utils/global-search';
 import Img from '../components/img';
@@ -12,9 +12,20 @@ import Img from '../components/img';
 // that covers nearly every realistic query without showing the entire
 // 1000+ pokemon list for a 1-char query.
 export default function SearchPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const q = (searchParams.get('q') || '').trim();
+  const raw = searchParams.get('q') || '';
+  const q = raw.trim();
+
+  // the page has its own field (phones reach search from the bottom bar,
+  // which opens this page with ?focus=1). typing rewrites ?q in place.
+  const inputRef = useRef(null);
+  const wantsFocus = searchParams.get('focus') === '1';
+  useEffect(() => { if (wantsFocus) inputRef.current?.focus(); }, [wantsFocus]);
+  const onType = (e) => {
+    const next = e.target.value;
+    setSearchParams(next ? { q: next } : {}, { replace: true });
+  };
 
   const groups = useMemo(() => searchAll(q, { limit: 100 }), [q]);
   const totalCount = groups.reduce((n, g) => n + g.results.length, 0);
@@ -25,6 +36,17 @@ export default function SearchPage() {
 
   return (
     <div className="search-page">
+      <input
+        ref={inputRef}
+        type="search"
+        className="search-page__input"
+        placeholder="search pokémon, cards, items…"
+        aria-label="search"
+        value={raw}
+        onChange={onType}
+        enterKeyHint="search"
+        autoComplete="off"
+      />
       <header className="search-page__header">
         <h1 className="search-page__title">
           {q ? <>results for <span className="search-page__query">“{q}”</span></> : 'search'}
@@ -38,7 +60,7 @@ export default function SearchPage() {
         )}
       </header>
 
-      {!q && <p className="search-page__empty">type a query in the header search box to see results.</p>}
+      {!q && <p className="search-page__empty">start typing to search everything.</p>}
 
       {groups.map((g, gi) => (
         <section key={g.type} className="search-page__group">

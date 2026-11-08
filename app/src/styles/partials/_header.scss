@@ -700,8 +700,9 @@
   &.is-current {
     font-weight: var(--fw-bold);
     &::after {
-      content: ' <';
-      content: ' <' / '';
+      content: '<';
+      content: '<' / '';
+      margin-left: .3em;
     }
   }
 

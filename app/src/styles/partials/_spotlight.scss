@@ -1,180 +1,88 @@
-// ─── Daily Pokémon Spotlight ─────────────────────────────────────────────────
-// hero card on the news page (above the page header). visual treatment is
-// theme-driven (var(--accent) border, matching news entry thumbnails) —
-// type info lives entirely in the type chips next to the name. card has
-// two states: a thin minimized strip that's clickable across its whole
-// width, and a fuller expanded body. body height animates via the
-// grid-template-rows 1fr↔0fr trick.
+// ─── daily pokémon spotlight (news page) ─────────────────────────────────────
+// compact card (2026-11 redesign, mock "B"): brand-orange tint, kicker · name
+// (+ cry) · meta on the left, artwork on the right. the name is a stretched
+// link covering the card; the cry button sits above that layer.
 
-$spotlight-transition: .35s cubic-bezier(.4, 0, .2, 1);
-
-.spotlight {
+.spotlight-card {
   position: relative;
-  background: var(--bg-card);
-  // match news thumbnails — 3px accent-colored frame so the spotlight
-  // reads as a "framed feature" rather than a hairline chrome bubble.
-  border: 3px solid var(--accent);
-  border-radius: var(--radius);
-  padding: 18px 22px;
-  margin: 0 0 18px;
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-
-  transition: padding $spotlight-transition;
-}
-
-.spotlight--minimized {
-  padding: 10px 16px;
-}
-
-// ─── header (always visible — clickable toggle) ──────────────────────────────
-.spotlight__header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 0;
-  background: transparent;
-  border: none;
-  font: inherit;
-  text-align: left;
-  color: inherit;
-  cursor: pointer;
+  gap: 4px;
+  min-height: 112px;
+  margin: 0 0 20px;
+  padding: 14px 8px 14px 18px;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--brand-orange) 24%, var(--bg-card));
+  color: var(--text);
 
-  @media (hover: hover) and (pointer: fine) {
-    &:hover .spotlight__chev { color: var(--text); }
+  &:active { filter: brightness(.97); }
+
+  &__info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
-}
 
-// title container takes the slack in the header so the date naturally
-// sits flush-right against the right chevron in both states. no
-// expanded-vs-minimized layout swap — both states share this row.
-.spotlight__header-text {
-  display: flex;
-  align-items: baseline;
-  min-width: 0;
-  flex: 1 1 auto;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-// ─── text fields ─────────────────────────────────────────────────────────────
-// title is a muted editorial label, date is muted tabular metadata.
-// minimized strip intentionally has no name (clicking is what reveals
-// today's pick — more engaging tease).
-.spotlight__title {
-  font-size: .72rem;
-  font-weight: var(--fw-medium);
-  color: var(--text-subtle);
-  text-transform: uppercase;
-  letter-spacing: .08em;
-  flex: 0 0 auto;
-}
-
-// date lives in the header flex row (sibling of header-text), so it
-// always sits to the right of the title regardless of expanded/minimized
-// state. header-text's flex-grow does the right-push naturally.
-.spotlight__date {
-  font-size: .72rem;
-  color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-  flex: 0 0 auto;
-}
-
-// chevron glyphs. both sides always visible — kept around expanded too
-// so the header text doesn't slide left/right when the card toggles.
-// no border/background — just the icon glyph in muted color.
-.spotlight__chev {
-  flex: 0 0 auto;
-  width: 26px;
-  height: 26px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-muted);
-  transition: color .15s ease;
-}
-
-// ─── body wrap (animated) ────────────────────────────────────────────────────
-.spotlight__body-wrap {
-  display: grid;
-  grid-template-rows: 1fr;
-  margin-top: 14px;
-  transition:
-    grid-template-rows $spotlight-transition,
-    margin-top         $spotlight-transition,
-    opacity            $spotlight-transition;
-}
-
-.spotlight__body-wrap > .spotlight__body {
-  min-height: 0;
-  overflow: hidden;
-  display: flex;
-  gap: 18px;
-  align-items: flex-start;
-}
-
-.spotlight--minimized .spotlight__body-wrap {
-  grid-template-rows: 0fr;
-  margin-top: 0;
-  opacity: 0;
-  pointer-events: none;
-}
-
-// ─── body contents ───────────────────────────────────────────────────────────
-.spotlight__artwork-link {
-  flex: 0 0 auto;
-  width: 150px;
-  height: 150px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-sm);
-  background: var(--bg);
-  text-decoration: none;
-  transition: transform .15s ease;
-
-  @media (hover: hover) and (pointer: fine) {
-    &:hover { transform: scale(1.02); }
+  &__kicker {
+    font-size: .82rem;
+    font-weight: var(--fw-bold);
+    letter-spacing: .02em;
+    // deep brand-orange: readable text shade of #f4b65c
+    color: color-mix(in srgb, var(--brand-orange) 45%, #5a3200);
   }
-  &:active { transform: scale(.98); }
-}
 
-.spotlight__artwork {
-  max-width: 88%;
-  max-height: 88%;
-  object-fit: contain;
-  filter: drop-shadow(0 5px 12px color-mix(in srgb, var(--text) 20%, transparent));
-}
+  &__name-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
 
-.spotlight__info {
-  flex: 1 1 0;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
+  &__name {
+    font-size: 1.65rem;
+    font-weight: var(--fw-bold);
+    line-height: 1.1;
+    color: inherit;
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 
-.spotlight__id-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0 0 4px;
-}
+    // stretched link: the whole card is the tap target
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+    }
+  }
 
-.spotlight__id {
-  font-size: .8rem;
-  font-weight: var(--fw-semibold);
-  color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-}
+  &__cry {
+    position: relative;
+    z-index: 1;
+    flex: none;
+    width: 34px;
+    height: 34px;
+  }
 
-// gen + region — clustered with #id at the top of the info column as
-// "this pokémon's locator info". subtle so it doesn't compete with the
-// name + types row below.
-.spotlight__origin {
-  font-size: .75rem;
-  color: var(--text-subtle);
-  letter-spacing: .03em;
+  &__meta {
+    font-size: .9rem;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__art {
+    flex: none;
+    width: 110px;
+    height: 110px;
+    margin: -8px 0;
+    object-fit: contain;
+    pointer-events: none;
+  }
 }
 
 .spotlight__cry {
@@ -227,80 +135,4 @@ $spotlight-transition: .35s cubic-bezier(.4, 0, .2, 1);
 @keyframes spotlight-cry-wave {
   0%, 100% { opacity: .3; }
   50%      { opacity: 1; }
-}
-
-// name + type chips share a row so the type info reads as part of the
-// pokémon's identity, not a separate section below it.
-.spotlight__name-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin: 0 0 4px;
-}
-
-.spotlight__name {
-  margin: 0;
-  font-size: 1.7rem;
-  font-weight: var(--fw-bold);
-  text-transform: capitalize;
-  line-height: 1.1;
-}
-
-.spotlight__types {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.spotlight__subtitle {
-  margin: 4px 0 12px;
-  font-size: .78rem;
-  color: var(--text-muted);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.spotlight__flavor {
-  margin: 0 0 14px;
-  font-style: italic;
-  color: var(--text-muted);
-  line-height: 1.5;
-  font-size: .85rem;
-}
-
-.spotlight__cta {
-  align-self: flex-start;
-  display: inline-block;
-  padding: 8px 16px;
-  background: var(--accent);
-  color: #fff;
-  border-radius: var(--radius-sm);
-  text-decoration: none;
-  font-weight: var(--fw-semibold);
-  font-size: .78rem;
-  text-transform: lowercase;
-  letter-spacing: .03em;
-  transition: opacity .15s ease, transform .12s ease;
-
-  @media (hover: hover) and (pointer: fine) {
-    &:hover { opacity: .88; }
-  }
-  &:active { transform: scale(.96); }
-}
-
-// ─── responsive ──────────────────────────────────────────────────────────────
-@media (max-width: 520px) {
-  .spotlight { padding: 14px 16px; }
-  .spotlight--minimized { padding: 8px 14px; }
-  .spotlight__body-wrap > .spotlight__body { flex-direction: column; align-items: center; gap: 14px; }
-  .spotlight__artwork-link { width: 140px; height: 140px; }
-  .spotlight__name { font-size: 1.5rem; }
-}
-
-// reduced motion — kill the body-wrap animation; instantaneous snap.
-@media (prefers-reduced-motion: reduce) {
-  .spotlight,
-  .spotlight__body-wrap { transition: none; }
 }

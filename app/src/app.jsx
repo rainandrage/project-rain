@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useMemo, Fragment } from 'react';
 import { createPortal } from 'react-dom';
-import { BrowserRouter, Routes, Route, Link, Navigate, useLocation, useNavigationType, useSearchParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, Navigate, useLocation, useNavigate, useNavigationType, useSearchParams } from 'react-router-dom';
 import { useModalAnimation } from './hooks/use-modal-animation';
 import { useBodyScrollLock } from './hooks/use-body-scroll-lock';
+import { useCompact } from './hooks/use-compact';
 import { getAppScroller, scrollPositions } from './utils/app-scroll';
 import { STORAGE_KEYS, getString, setString, getBool, setBool, getJSON, setJSON } from './utils/storage';
 import HomePage from './pages/home-page';
@@ -306,7 +307,10 @@ function AppHeader({ theme, setTheme, a11y, setA11y }) {
   const [visualsOpen,  setVisualsOpen]  = useState(false);
   const [featuresOpen, setFeaturesOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const compact = useCompact();
   const sectionLabel = navLabelFor(location.pathname);
+  const onSearchPage = location.pathname.startsWith('/search');
 
   // expanded state for collapsible nav categories (browse / tools / world).
   // accordion behavior — only one section open at a time. opening a new
@@ -388,147 +392,193 @@ function AppHeader({ theme, setTheme, a11y, setA11y }) {
     return () => root.removeEventListener('keydown', handler);
   }, [featuresOpen]);
 
+  // the two control groups render in the header on wider screens and in
+  // the floating bottom bar on phones (compact). same elements, same state —
+  // only where they mount changes.
+  const menuAnchor = (
+    <div className="settings-anchor" ref={featuresRef}>
+      <button
+        className="settings-btn settings-burger"
+        onClick={() => {
+          // opening the menu reveals where you are: expand the section
+          // holding the current page (accordion — only that one) so its
+          // highlighted link is visible without digging.
+          if (!featuresOpen) {
+            const cur = currentNavSection(location.pathname);
+            if (cur) { setNavExpanded({ [cur]: true }); setJSON(STORAGE_KEYS.NAV_EXPANDED, { [cur]: true }); }
+          }
+          setFeaturesOpen(o => !o);
+        }}
+        aria-label={`menu — ${sectionLabel}`}
+        aria-expanded={featuresOpen}
+      >
+        {compact && featuresOpen ? (
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+        ) : (
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <rect y="2" width="16" height="2" rx="1"/>
+            <rect y="7" width="16" height="2" rx="1"/>
+            <rect y="12" width="16" height="2" rx="1"/>
+          </svg>
+        )}
+        {compact && <span className="bottom-bar__label">{onSearchPage ? 'menu' : sectionLabel}</span>}
+      </button>
+      {featuresShown && (
+        <div className={`settings-modal features-modal${featuresClosing ? ' closing' : ''}`}>
+          {NAV_SECTIONS.map((section, si) => {
+            // labeled sections collapse by default. unlabeled sections
+            // (news, about) always render their items inline (no
+            // collapsible wrapper needed).
+            const isExpanded = section.label ? !!navExpanded[section.label] : true;
+            const renderItem = (f) => (
+              <Link
+                key={f.to}
+                to={f.to}
+                className={`feature-link${section.label ? ' feature-link--nested' : ''}${isCurrentLink(f.to, location.pathname) ? ' is-current' : ''}`}
+                aria-current={isCurrentLink(f.to, location.pathname) ? 'page' : undefined}
+                onClick={() => {
+                  setFeaturesOpen(false);
+                  // collapse all nav sections on any navigation. simpler
+                  // than treating top-level vs nested items differently;
+                  // every fresh menu-open starts from a clean state
+                  // instead of carrying expanded sections from prior
+                  // sessions.
+                  setNavExpanded({});
+                  setJSON(STORAGE_KEYS.NAV_EXPANDED, {});
+                }}
+              >
+                {f.label}
+              </Link>
+            );
+            return (
+              <Fragment key={si}>
+                {section.divider && <div className="dropdown-divider" />}
+                {section.label ? (
+                  <>
+                    <button
+                      type="button"
+                      className={`nav-section-label nav-section-label--toggle${isExpanded ? ' is-expanded' : ''}${section.items.some(f => isCurrentLink(f.to, location.pathname)) ? ' has-current' : ''}`}
+                      onClick={() => toggleNavSection(section.label)}
+                      aria-expanded={isExpanded}
+                    >
+                      <span>{section.label}</span>
+                      <span className="nav-section-label__chevron" aria-hidden="true">›</span>
+                    </button>
+                    {/* always-mounted collapsible wrapper — items stay
+                        in the DOM so the grid-track animation can
+                        smoothly expand/collapse height instead of
+                        popping in/out. */}
+                    <div
+                      className={`nav-section-items${isExpanded ? ' is-expanded' : ''}`}
+                      aria-hidden={!isExpanded}
+                    >
+                      <div className="nav-section-items__inner">
+                        {section.items.map(renderItem)}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  section.items.map(renderItem)
+                )}
+              </Fragment>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+
+  const settingsAnchor = (
+    <div className="settings-anchor" ref={visualsRef}>
+      <button className="settings-btn settings-cog" onClick={() => setVisualsOpen(o => !o)} aria-label="settings" aria-expanded={visualsOpen}>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <path fillRule="evenodd" d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/>
+        </svg>
+        {compact && <span className="bottom-bar__label">settings</span>}
+      </button>
+
+      {visualsShown && (
+        <div className={`settings-modal${visualsClosing ? ' closing' : ''}`}>
+          <span className="settings-label">visuals</span>
+
+          <div className="settings-section">
+            <span className="settings-sublabel">theme</span>
+            <select
+              className="theme-select"
+              value={theme}
+              onChange={e => setTheme(e.target.value)}
+            >
+              {THEMES.map(t => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="dropdown-divider" />
+
+          <div className="settings-section">
+            <span className="settings-sublabel">a11y</span>
+            <label className="toggle-row">
+              <span>a11y mode</span>
+              <div
+                className={`toggle-switch${a11y ? ' on' : ''}`}
+                onClick={() => setA11y(v => !v)}
+              />
+            </label>
+            <p className="settings-hint">adds patterns to stat bars, removes animations, increases font size and spacing, boosts contrast</p>
+          </div>
+
+        </div>
+      )}
+    </div>
+  );
+
+  if (compact) {
+    return (
+      <>
+        <header className="site-header site-header--compact">
+          <HeaderSprites a11y={a11y} />
+        </header>
+        {/* body portal: pull-to-refresh transforms #root, which would drag a
+            fixed bar along with it (same reason as the footer strip). */}
+        {createPortal(
+          <>
+          {/* dims the page while a sheet is open; tapping it closes the
+              sheet via the document-level outside-click handler */}
+          {(featuresShown || visualsShown) && (
+            <div className={`bottom-bar-scrim${(featuresClosing || visualsClosing) ? ' closing' : ''}`} aria-hidden="true" />
+          )}
+          <nav className={`bottom-bar${onSearchPage ? ' bottom-bar--search' : ''}`} aria-label="app">
+            {menuAnchor}
+            <button
+              type="button"
+              className={`settings-btn bottom-bar__search${onSearchPage ? ' is-current' : ''}`}
+              onClick={() => navigate('/search?focus=1')}
+              aria-label="search"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="M20 20l-4.2-4.2" /></svg>
+              <span className="bottom-bar__label">search</span>
+            </button>
+            {settingsAnchor}
+          </nav>
+          </>,
+          document.body,
+        )}
+      </>
+    );
+  }
+
   return (
     <header className="site-header">
       <HeaderSprites a11y={a11y} />
 
       <div className="header-left">
-        <div className="settings-anchor" ref={featuresRef}>
-          <button
-            className="settings-btn settings-burger"
-            onClick={() => {
-              // opening the menu reveals where you are: expand the section
-              // holding the current page (accordion — only that one) so its
-              // highlighted link is visible without digging.
-              if (!featuresOpen) {
-                const cur = currentNavSection(location.pathname);
-                if (cur) { setNavExpanded({ [cur]: true }); setJSON(STORAGE_KEYS.NAV_EXPANDED, { [cur]: true }); }
-              }
-              setFeaturesOpen(o => !o);
-            }}
-            aria-label={`menu — ${sectionLabel}`}
-            aria-expanded={featuresOpen}
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-              <rect y="2" width="16" height="2" rx="1"/>
-              <rect y="7" width="16" height="2" rx="1"/>
-              <rect y="12" width="16" height="2" rx="1"/>
-            </svg>
-          </button>
-          {featuresShown && (
-            <div className={`settings-modal features-modal${featuresClosing ? ' closing' : ''}`}>
-              {NAV_SECTIONS.map((section, si) => {
-                // labeled sections collapse by default. unlabeled sections
-                // (news, about) always render their items inline (no
-                // collapsible wrapper needed).
-                const isExpanded = section.label ? !!navExpanded[section.label] : true;
-                const renderItem = (f) => (
-                  <Link
-                    key={f.to}
-                    to={f.to}
-                    className={`feature-link${section.label ? ' feature-link--nested' : ''}${isCurrentLink(f.to, location.pathname) ? ' is-current' : ''}`}
-                    aria-current={isCurrentLink(f.to, location.pathname) ? 'page' : undefined}
-                    onClick={() => {
-                      setFeaturesOpen(false);
-                      // collapse all nav sections on any navigation. simpler
-                      // than treating top-level vs nested items differently;
-                      // every fresh menu-open starts from a clean state
-                      // instead of carrying expanded sections from prior
-                      // sessions.
-                      setNavExpanded({});
-                      setJSON(STORAGE_KEYS.NAV_EXPANDED, {});
-                    }}
-                  >
-                    {f.label}
-                  </Link>
-                );
-                return (
-                  <Fragment key={si}>
-                    {section.divider && <div className="dropdown-divider" />}
-                    {section.label ? (
-                      <>
-                        <button
-                          type="button"
-                          className={`nav-section-label nav-section-label--toggle${isExpanded ? ' is-expanded' : ''}${section.items.some(f => isCurrentLink(f.to, location.pathname)) ? ' has-current' : ''}`}
-                          onClick={() => toggleNavSection(section.label)}
-                          aria-expanded={isExpanded}
-                        >
-                          <span>{section.label}</span>
-                          <span className="nav-section-label__chevron" aria-hidden="true">›</span>
-                        </button>
-                        {/* always-mounted collapsible wrapper — items stay
-                            in the DOM so the grid-track animation can
-                            smoothly expand/collapse height instead of
-                            popping in/out. */}
-                        <div
-                          className={`nav-section-items${isExpanded ? ' is-expanded' : ''}`}
-                          aria-hidden={!isExpanded}
-                        >
-                          <div className="nav-section-items__inner">
-                            {section.items.map(renderItem)}
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      section.items.map(renderItem)
-                    )}
-                  </Fragment>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        {menuAnchor}
       </div>
 
       <div className="header-right">
         <GlobalSearch />
-        <div className="settings-anchor" ref={visualsRef}>
-          <button className="settings-btn settings-cog" onClick={() => setVisualsOpen(o => !o)} aria-label="settings" aria-expanded={visualsOpen}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-              <path fillRule="evenodd" d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/>
-            </svg>
-          </button>
-
-          {visualsShown && (
-            <div className={`settings-modal${visualsClosing ? ' closing' : ''}`}>
-              <span className="settings-label">visuals</span>
-
-              <div className="settings-section">
-                <span className="settings-sublabel">theme</span>
-                <select
-                  className="theme-select"
-                  value={theme}
-                  onChange={e => { setTheme(e.target.value); setVisualsOpen(false); }}
-                >
-                  {THEMES.map(t => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="dropdown-divider" />
-
-              <div className="settings-section">
-                <span className="settings-sublabel">a11y</span>
-                <label className="toggle-row">
-                  <span>a11y mode</span>
-                  <div
-                    className={`toggle-switch${a11y ? ' on' : ''}`}
-                    onClick={() => {
-                      setA11y(v => !v);
-                      // let the 200ms toggle knob transition finish before the modal fades out,
-                      // so the user sees the switch reach its new position. matches the natural
-                      // delay from the native <select> closing before theme onChange fires.
-                      setTimeout(() => setVisualsOpen(false), 200);
-                    }}
-                  />
-                </label>
-                <p className="settings-hint">adds patterns to stat bars, removes animations, increases font size and spacing, boosts contrast</p>
-              </div>
-
-            </div>
-          )}
-        </div>
+        {settingsAnchor}
       </div>
     </header>
   );
