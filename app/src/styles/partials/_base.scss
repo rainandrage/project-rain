@@ -258,12 +258,6 @@ img.is-retro {
   image-rendering: crisp-edges;
 }
 
-// shared by twitch-live-badge dot + about-page embed pulse marker.
-@keyframes live-pulse {
-  0%, 100% { opacity: 1;   transform: scale(1);   }
-  50%      { opacity: .55; transform: scale(.85); }
-}
-
 // ─── global <Img> wrapper (components/img.jsx) ───────────────────────────────
 //
 // drop-in replacement for <img>. while the underlying image is loading we

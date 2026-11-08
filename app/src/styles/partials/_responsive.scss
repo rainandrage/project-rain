@@ -124,15 +124,6 @@
   // bumped to 16px specifically so ios safari does NOT zoom the page on
   // focus — anything smaller triggers the autozoom, and there's no
   // user-initiated way to zoom back out once it fires.
-  // while the search is open on a phone, drop the burger's section label so
-  // the expanded field has room between the burger and the cog — the burger
-  // icon alone keeps the menu reachable. (:has is supported on
-  // all modern ios/safari; where it isn't, they simply stay put — a benign
-  // fallback.)
-  .site-header:has(.global-search.is-expanded) .settings-burger__label {
-    display: none;
-  }
-
   .global-search {
     // collapsed, the toggle already matches the 46px cog/burger tap targets
     // (shared rule above). expanded, the field opens narrower than desktop so

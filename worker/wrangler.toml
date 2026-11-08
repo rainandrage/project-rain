@@ -9,13 +9,3 @@ compatibility_date = "2025-09-01"
 # after `wrangler deploy`, the default url will be:
 #   https://pokedex-news.<your-subdomain>.workers.dev
 # paste that into app/src/pages/news-page.jsx as NEWS_API_URL.
-
-# twitch live-status endpoint (/live) reads this channel slug. change it via
-# the wrangler.toml + redeploy if the streamer handle ever changes. NOT a
-# secret — the channel is public.
-[vars]
-TWITCH_CHANNEL = "shockwavexr"
-
-# secrets (set via `npx wrangler secret put NAME`, NOT here):
-#   TWITCH_CLIENT_ID      — from https://dev.twitch.tv/console/apps
-#   TWITCH_CLIENT_SECRET  — same console, "new secret" button

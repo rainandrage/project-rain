@@ -23,10 +23,7 @@ import ChangelogPage from './pages/changelog-page';
 import AboutPage from './pages/about-page';
 import SearchPage from './pages/search-page';
 import TransitionVeil from './components/transition-veil';
-import TwitchLiveBadge from './components/twitch-live-badge';
-import TwitchGlitch from './components/twitch-glitch';
 import GlobalSearch from './components/global-search';
-import { useTwitchLive } from './hooks/use-twitch-live';
 import { RetroProvider } from './hooks/use-retro-sprites';
 
 // section flags:
@@ -117,6 +114,20 @@ function navLabelFor(pathname) {
   if (pathname.startsWith('/pokemon')) return 'pokedex';
   if (pathname.startsWith('/search'))  return 'search';
   return 'menu';
+}
+
+// does this nav link represent the page we're on? detail pages count as their
+// parent list (/pokemon/6 → pokedex) so the menu still marks where you are.
+function isCurrentLink(to, pathname) {
+  if (pathname === to) return true;
+  if (to === '/news' && pathname === '/') return true;
+  if (to === '/pokedex' && pathname.startsWith('/pokemon')) return true;
+  return false;
+}
+// label of the collapsible nav section holding the current page (or null)
+function currentNavSection(pathname) {
+  const s = NAV_SECTIONS.find(sec => sec.label && sec.items.some(f => isCurrentLink(f.to, pathname)));
+  return s ? s.label : null;
 }
 
 const THEMES = ['auto', 'light', 'dark', 'ereader', 'retro', 'nitro'];
@@ -294,7 +305,6 @@ function ScrollManager() {
 function AppHeader({ theme, setTheme, a11y, setA11y }) {
   const [visualsOpen,  setVisualsOpen]  = useState(false);
   const [featuresOpen, setFeaturesOpen] = useState(false);
-  const { isLive } = useTwitchLive();
   const location = useLocation();
   const sectionLabel = navLabelFor(location.pathname);
 
@@ -384,13 +394,26 @@ function AppHeader({ theme, setTheme, a11y, setA11y }) {
 
       <div className="header-left">
         <div className="settings-anchor" ref={featuresRef}>
-          <button className="settings-btn settings-burger" onClick={() => setFeaturesOpen(o => !o)} aria-label={`menu — ${sectionLabel}`} aria-expanded={featuresOpen}>
+          <button
+            className="settings-btn settings-burger"
+            onClick={() => {
+              // opening the menu reveals where you are: expand the section
+              // holding the current page (accordion — only that one) so its
+              // highlighted link is visible without digging.
+              if (!featuresOpen) {
+                const cur = currentNavSection(location.pathname);
+                if (cur) { setNavExpanded({ [cur]: true }); setJSON(STORAGE_KEYS.NAV_EXPANDED, { [cur]: true }); }
+              }
+              setFeaturesOpen(o => !o);
+            }}
+            aria-label={`menu — ${sectionLabel}`}
+            aria-expanded={featuresOpen}
+          >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
               <rect y="2" width="16" height="2" rx="1"/>
               <rect y="7" width="16" height="2" rx="1"/>
               <rect y="12" width="16" height="2" rx="1"/>
             </svg>
-            <span className="settings-burger__label">{sectionLabel}</span>
           </button>
           {featuresShown && (
             <div className={`settings-modal features-modal${featuresClosing ? ' closing' : ''}`}>
@@ -403,7 +426,8 @@ function AppHeader({ theme, setTheme, a11y, setA11y }) {
                   <Link
                     key={f.to}
                     to={f.to}
-                    className={`feature-link${section.label ? ' feature-link--nested' : ''}`}
+                    className={`feature-link${section.label ? ' feature-link--nested' : ''}${isCurrentLink(f.to, location.pathname) ? ' is-current' : ''}`}
+                    aria-current={isCurrentLink(f.to, location.pathname) ? 'page' : undefined}
                     onClick={() => {
                       setFeaturesOpen(false);
                       // collapse all nav sections on any navigation. simpler
@@ -416,13 +440,6 @@ function AppHeader({ theme, setTheme, a11y, setA11y }) {
                     }}
                   >
                     {f.label}
-                    {f.to === '/about' && isLive && (
-                      <span className="feature-link__live-pip" aria-label="streaming live now">
-                        <span className="feature-link__live-pip-dot" />
-                        live
-                        <TwitchGlitch className="feature-link__live-pip-glitch" />
-                      </span>
-                    )}
                   </Link>
                 );
                 return (
@@ -432,7 +449,7 @@ function AppHeader({ theme, setTheme, a11y, setA11y }) {
                       <>
                         <button
                           type="button"
-                          className={`nav-section-label nav-section-label--toggle${isExpanded ? ' is-expanded' : ''}`}
+                          className={`nav-section-label nav-section-label--toggle${isExpanded ? ' is-expanded' : ''}${section.items.some(f => isCurrentLink(f.to, location.pathname)) ? ' has-current' : ''}`}
                           onClick={() => toggleNavSection(section.label)}
                           aria-expanded={isExpanded}
                         >
@@ -465,7 +482,6 @@ function AppHeader({ theme, setTheme, a11y, setA11y }) {
 
       <div className="header-right">
         <GlobalSearch />
-        {isLive && <TwitchLiveBadge />}
         <div className="settings-anchor" ref={visualsRef}>
           <button className="settings-btn settings-cog" onClick={() => setVisualsOpen(o => !o)} aria-label="settings" aria-expanded={visualsOpen}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
@@ -558,11 +574,6 @@ function useVisualSettings() {
 
 export default function App() {
   const { theme, setTheme, a11y, setA11y } = useVisualSettings();
-  // channel comes from the cloudflare worker via use-twitch-live (single
-  // source of truth — same hook the about page reads). twitch link is
-  // hidden until channel resolves so we never render a broken
-  // `/twitch/undefined` link.
-  const { channel } = useTwitchLive();
 
   // tag <html data-standalone> when launched from the ios home-screen icon.
   // we deliberately don't rely solely on `@media (display-mode: standalone)` —
@@ -617,8 +628,8 @@ export default function App() {
           down with the rest of the page during a pull). position: fixed
           anchors it to the visual viewport; .app-scroll has padding-bottom
           equal to the footer's height so content doesn't tuck behind it.
-          desktop shows the same external links as the about page (github +
-          twitch). in iOS PWA standalone, height collapses to
+          desktop shows the same external link as the about page (github).
+          in iOS PWA standalone, height collapses to
           env(safe-area-inset-bottom) and content is clipped via overflow,
           so the band claims the home-indicator zone as intentional UI. */}
       {typeof document !== 'undefined' && createPortal(
@@ -631,19 +642,6 @@ export default function App() {
           >
             github
           </a>
-          {channel && (
-            <>
-              <span className="site-footer-strip__sep" aria-hidden="true">||</span>
-              <a
-                href={`https://www.twitch.tv/${channel}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="site-footer-strip__link"
-              >
-                twitch
-              </a>
-            </>
-          )}
         </footer>,
         document.body,
       )}

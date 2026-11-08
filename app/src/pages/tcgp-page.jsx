@@ -120,6 +120,80 @@ const cardNumber = (c) => {
 const RARITY_OPTIONS  = RARITY_ORDER.filter(r  => cards.some(c => c.rarity === r));
 const ELEMENT_OPTIONS = ELEMENT_ORDER.filter(e => cards.some(c => c.element === e));
 
+// ── packs ("pulled from") ───────────────────────────────────────────────────
+// every card lists the booster pack(s) it can be pulled from (flibustier's
+// `packs`). sets with several packs (genetic apex: mewtwo / pikachu /
+// charizard) have some cards exclusive to one pack and some in all of them.
+const SET_PACKS = (() => {
+  const m = new Map();
+  for (const c of cards) {
+    if (!m.has(c.set)) m.set(c.set, new Set());
+    for (const p of c.packs || []) m.get(c.set).add(p);
+  }
+  return m;
+})();
+
+// short human label for where this print comes from within its own set, or
+// null when the set name alone says it (single-pack sets).
+function packText(c) {
+  const packs = c.packs || [];
+  if (!packs.length) return 'not in booster packs';
+  if (c.set.startsWith('PROMO')) return `${packs.join(' / ')} promo pack`;
+  const all = SET_PACKS.get(c.set);
+  if (!all || all.size < 2) return null;
+  if (packs.length === all.size) return 'any pack';
+  // "Dual Fusion Pikachu" in set "Dual Fusion" → "Pikachu"
+  const short = packs.map(p => (p.startsWith(c.set_name + ' ') ? p.slice(c.set_name.length + 1) : p));
+  return `${short.join(' or ')} pack`;
+}
+
+// same-art prints: identical function (echo signature) AND same illustrator
+// AND same rarity — i.e. a straight reprint of this exact card, like genetic
+// apex Bulbasaur (A1-1) reappearing in deluxe pack: ex as A4b-1 (plain) and
+// A4b-2 (foil). drives the "pulled from" list so a card shows every set/pack
+// that can give you that art. (alt arts — different illustrator or rarity —
+// stay in "other prints" only.) two copies inside ONE set only count as the
+// same art in deluxe sets (plain + foil); elsewhere same-set twins are real
+// variants — e.g. SP1's red / green / blue anomaly Mews — and we can't tell
+// which of them a cross-set reprint matches, so such groups are skipped.
+const isDeluxe = (c) => /deluxe/i.test(c.set_name);
+const SAME_ART = (() => {
+  const bySig = new Map();
+  for (const c of cards) {
+    const k = `${echoSignature(c)}|${c.illustrator}|${c.rarity}`;
+    if (!bySig.has(k)) bySig.set(k, []);
+    bySig.get(k).push(c);
+  }
+  const byUid = new Map();
+  for (const group of bySig.values()) {
+    if (group.length < 2) continue;
+    const perSet = new Map();
+    for (const c of group) if (!isDeluxe(c)) perSet.set(c.set, (perSet.get(c.set) || 0) + 1);
+    if ([...perSet.values()].some(n => n > 1)) continue;
+    const sorted = [...group].sort((a, b) =>
+      a.set_release === b.set_release
+        ? Number(a.number) - Number(b.number)
+        : (a.set_release < b.set_release ? -1 : 1));
+    for (const c of group) byUid.set(c.uid, sorted);
+  }
+  return byUid;
+})();
+
+// rows for the "pulled from" block: one per set (deluxe's plain + foil copies
+// collapse into one row listing both numbers), this print's own set first.
+function pulledFrom(card) {
+  const prints = SAME_ART.get(card.uid) || [card];
+  const rows = new Map();
+  for (const p of prints) {
+    const key = `${p.set}|${packText(p)}`;
+    if (!rows.has(key)) rows.set(key, { set_name: p.set_name, pack: packText(p), numbers: [], current: false });
+    const row = rows.get(key);
+    row.numbers.push(cardNumber(p));
+    if (p.uid === card.uid) row.current = true;
+  }
+  return [...rows.values()].sort((a, b) => b.current - a.current);
+}
+
 // attribute filter groups — second dropdown. options encode as `{group}:{value}`
 // strings inside selectedAttrs so a single Set can hold a mix of categories.
 // filter logic is AND across groups, OR within each group.
@@ -436,6 +510,27 @@ function CardModal({ card, modalRef, onClose, onPrev, onNext, closing, bump, onE
               </span>
             )}
           </div>
+
+          {/* where this art can be pulled: its own set/pack, plus straight
+              reprints elsewhere (e.g. a genetic apex card also in a deluxe pack) */}
+          {(() => {
+            const rows = pulledFrom(card);
+            const multi = rows.length > 1 || rows[0].numbers.length > 1;
+            return (
+              <div className="tcgp-packs">
+                <span className="tcgp-packs__label">pulled from</span>
+                <ul className="tcgp-packs__list">
+                  {rows.map((r) => (
+                    <li key={`${r.set_name}|${r.pack}`} className="tcgp-packs__row">
+                      <span className="tcgp-packs__set">{r.set_name}</span>
+                      {r.pack && <span className="tcgp-packs__pack">{r.pack}</span>}
+                      {multi && <span className="tcgp-packs__num">{r.numbers.join(', ')}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })()}
 
           {card.ability && (
             <div className="tcgp-ability">

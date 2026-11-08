@@ -14,48 +14,6 @@
   }
 }
 
-// twitch live embed inside the about card. only renders when useTwitchLive()
-// reports isLive — the card itself stays compact when offline.
-.twitch-embed {
-  margin-top: 24px;
-
-  &__header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
-    font-size: .85rem;
-    font-weight: var(--fw-semibold);
-    color: var(--text);
-  }
-
-  &__pulse {
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    background: #e91916;
-    animation: live-pulse 1.5s ease-in-out infinite;
-  }
-
-  &__frame {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    background: #000;
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-    box-shadow: var(--shadow-md);
-
-    iframe {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      border: 0;
-    }
-  }
-}
-
 // ─── compare page ────────────────────────────────────────────────────────────
 
 .compare-page {
@@ -2096,6 +2054,49 @@
   &__value {
     font-weight: var(--fw-bold);
     text-transform: capitalize;
+  }
+}
+
+// "pulled from" — set + pack for this print, plus same-art reprints elsewhere.
+// same bubble + small-caps label as the stat chips above it.
+.tcgp-packs {
+  padding: 8px 12px;
+  background: var(--bg-sidebar);
+  border-radius: var(--radius-sm);
+  font-size: .82rem;
+
+  &__label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: .65rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+  &__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  &__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 6px;
+  }
+  &__set { font-weight: var(--fw-bold); }
+  &__pack {
+    color: var(--text-muted);
+    &::before { content: '· '; }
+  }
+  &__num {
+    margin-left: auto;
+    font-size: .72rem;
+    color: var(--text-subtle);
+    font-variant-numeric: tabular-nums;
   }
 }
 

@@ -1,17 +1,13 @@
 # pokedex-news worker
 
-Cloudflare Worker backing two frontend features:
+Cloudflare Worker backing the news page:
 
 - `/news.json` — aggregated pokemon news (PokeBeach scrape + Nintendo Life RSS),
   normalized and CORS-enabled. The frontend calls this on every news-page mount.
-- `/live` — Twitch streaming status for the configured channel, fetched via
-  Twitch's Helix API. The frontend uses it to render a live badge in the header
-  and an embedded player on the about page.
 
 The news parsing pipeline lives in `scripts/news/news-core.mjs` and is shared
 with the bundled-fallback generator (`scripts/news/fetch-news.mjs`), so the two
-can't drift. This file is purely worker glue: CORS, edge cache, routing, and
-the Twitch OAuth + Helix calls.
+can't drift. This file is purely worker glue: CORS, edge cache, routing.
 
 ---
 
@@ -22,8 +18,6 @@ GET  /                 health check
 GET  /health           health check
 GET  /news.json        the news feed
 GET  /news.json?refresh=1   bypass edge cache (force upstream refetch)
-GET  /live             twitch live status for $TWITCH_CHANNEL
-GET  /live?refresh=1   bypass edge cache (force fresh helix call)
 ```
 
 Response shape matches `app/src/data/news.json`:
@@ -90,16 +84,8 @@ npx wrangler deploy        # uploads src/index.js, returns the live url
 Deployed URL is `https://pokedex-news.<your-subdomain>.workers.dev` — the
 subdomain is account-scoped and chosen on first deploy; the URL is permanent.
 
-Twitch secrets must be set out-of-band (they're not in `wrangler.toml`):
-
-```bash
-npx wrangler secret put TWITCH_CLIENT_ID
-npx wrangler secret put TWITCH_CLIENT_SECRET
-```
-
-Frontend endpoint constants are in `app/src/pages/news-page.jsx`
-(`NEWS_API_URL`) and `app/src/hooks/use-twitch-live.js` (`LIVE_API_URL`).
-Both also accept `VITE_NEWS_API` / `VITE_LIVE_API` env overrides via
+The frontend endpoint constant is in `app/src/pages/news-page.jsx`
+(`NEWS_API_URL`). It also accepts a `VITE_NEWS_API` env override via
 `app/.env.local` for pointing dev builds at a local `wrangler dev`.
 
 ---
@@ -111,79 +97,6 @@ seconds. No git, no commit, no Pages rebuild required. Existing cached
 responses expire on their own (30 min TTL).
 
 To purge the cache immediately, just hit `/news.json?refresh=1` once.
-
----
-
-## /live endpoint
-
-Returns the current Twitch streaming status for the channel configured in
-`wrangler.toml`. Powers the header live-badge and the embedded player on the
-about page.
-
-```jsonc
-// live response when streaming
-{
-  "isLive":   true,
-  "channel":  "shockwavexr",
-  "title":    "stream title",
-  "viewers":  42,
-  "game":     "Just Chatting",
-  "startedAt": "2026-04-26T12:34:56Z",
-  "thumbnail": "https://static-cdn.jtvnw.net/.../440x248.jpg"
-}
-
-// when offline
-{ "isLive": false, "channel": "shockwavexr" }
-```
-
-Failures (missing credentials, Twitch outage, rate limit) return `isLive: false`
-with `cache-control: no-store` rather than 5xx, so the frontend continues
-rendering as offline instead of breaking. Failure causes surface in the
-`x-error` response header for `wrangler tail` debugging.
-
-### configuration
-
-| name                   | source                                       | purpose                                  |
-| ---------------------- | -------------------------------------------- | ---------------------------------------- |
-| `TWITCH_CHANNEL`       | `[vars]` in `wrangler.toml` (committed)      | Public channel slug (the user_login)     |
-| `TWITCH_CLIENT_ID`     | `wrangler secret put` (encrypted, not in git) | Twitch dev-app Client ID                 |
-| `TWITCH_CLIENT_SECRET` | `wrangler secret put` (encrypted, not in git) | Twitch dev-app Client Secret             |
-
-Client credentials are issued from a Twitch developer application registered
-at <https://dev.twitch.tv/console/apps>. The OAuth client-credentials flow
-requires no streamer login or scope — Helix `streams` is a public endpoint.
-The Client Secret never leaves Cloudflare's encrypted secret store; the
-frontend only ever talks to the worker.
-
-Channel slug is centralized in `wrangler.toml`. The frontend reads it from
-the `/live` response and caches it in localStorage for fast first paint, so
-changing the streamer's handle is a worker-only edit + redeploy — no frontend
-code change required.
-
-### auth flow
-
-Per cache miss, the worker performs:
-
-1. `POST id.twitch.tv/oauth2/token` with `grant_type=client_credentials` to
-   mint a short-lived app access token.
-2. `GET api.twitch.tv/helix/streams?user_login=$TWITCH_CHANNEL` with the token
-   in the Authorization header.
-
-Tokens are not persisted between cache misses. At the configured 60s edge-cache
-window the worker mints at most ~60 tokens/hour, well below Twitch's documented
-~800/hr OAuth rate limit per Client ID. Adding KV-backed token caching would be
-a small optimization but isn't load-justified.
-
-### cache behavior
-
-```
-GET /live              → edge cache (60s ttl), helix on miss
-GET /live?refresh=1    → bypass edge cache, force a fresh helix call
-```
-
-The 60s window trades a small amount of badge-staleness for keeping Helix
-calls bounded. Stream-state transitions (you go live or end the stream)
-surface within 60s of the next page poll on the client.
 
 ---
 

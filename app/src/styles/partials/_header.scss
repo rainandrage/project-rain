@@ -100,18 +100,6 @@
   background: var(--bg);
 }
 
-// section-name chip living inside the burger button — same bubble as the icon,
-// so the header always names the current section (news, pokedex, cards…).
-.settings-burger__label {
-  margin-left: 7px;
-  font-size: .75rem;
-  font-weight: var(--fw-medium);
-  letter-spacing: .01em;
-  line-height: 1;
-  white-space: nowrap;
-  text-transform: lowercase;
-}
-
 // settings button + modal anchor
 .settings-anchor {
   position: relative;
@@ -553,82 +541,6 @@
   }
 }
 
-// red "live" pill shown only while the twitch stream is live (mounted by
-// AppHeader behind a useTwitchLive() check). three reinforcing cues:
-//   - twitch glitch icon (platform context for first-time visitors)
-//   - pulsing dot (universal "broadcast live" cue)
-//   - "live" text (explicit confirmation)
-.twitch-live-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  font-size: .68rem;
-  font-weight: var(--fw-bold);
-  text-transform: uppercase;
-  letter-spacing: .08em;
-  color: #fff;
-  background: #e91916;
-  border-radius: 999px;
-  text-decoration: none;
-  line-height: 1;
-  transition: transform .15s ease, box-shadow .15s ease;
-
-  &:hover, &:focus-visible {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 10px color-mix(in srgb, #e91916 55%, transparent);
-  }
-
-  &__glitch {
-    width: 11px;
-    height: 11px;
-    flex-shrink: 0;
-  }
-
-  &__dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #fff;
-    animation: live-pulse 1.5s ease-in-out infinite;
-  }
-}
-
-// inline pip on the burger-menu "about" item — mirrors the header chip's
-// dot + "live" + glitch order at smaller scale for visual consistency
-// across both surfaces where the live state appears.
-.feature-link__live-pip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-left: 8px;
-  padding: 1px 6px;
-  font-size: .55rem;
-  font-weight: var(--fw-bold);
-  text-transform: uppercase;
-  letter-spacing: .08em;
-  color: #fff;
-  background: #e91916;
-  border-radius: 999px;
-  line-height: 1;
-  vertical-align: middle;
-}
-
-.feature-link__live-pip-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #fff;
-  animation: live-pulse 1.5s ease-in-out infinite;
-  flex-shrink: 0;
-}
-
-.feature-link__live-pip-glitch {
-  width: 9px;
-  height: 9px;
-  flex-shrink: 0;
-}
-
 // ─── features dropdown ───────────────────────────────────────────────────────
 
 .features-modal {
@@ -753,6 +665,11 @@
   }
 }
 
+// section holding the current page — bolded to match its current link
+.nav-section-label.has-current {
+  font-weight: var(--fw-bold);
+}
+
 .feature-link {
   display: block;
   padding: 7px 12px;
@@ -772,6 +689,19 @@
     &:hover {
       background: color-mix(in srgb, var(--text) 5%, transparent);
       color: var(--accent);
+    }
+  }
+
+  // the page you're on — replaces the old section-name text next to the
+  // burger. bold + a trailing "<" marker: carried by weight + shape rather
+  // than color, so it reads the same in every theme / a11y mode. the marker
+  // is decorative (aria-current="page" already announces it), so its alt
+  // text is empty.
+  &.is-current {
+    font-weight: var(--fw-bold);
+    &::after {
+      content: ' <';
+      content: ' <' / '';
     }
   }
 
@@ -808,8 +738,8 @@
 // site-header's chrome (bg-header + border) so the page reads as
 // sandwiched between matching top + bottom bands.
 //
-// desktop / browser: 44px tall, carries github + twitch links (same set
-// as the about page). in iOS PWA standalone the height collapses to
+// desktop / browser: 44px tall, carries the github link (same as the
+// about page). in iOS PWA standalone the height collapses to
 // env(safe-area-inset-bottom) and the inner content is clipped via
 // overflow:hidden — what remains is just a thin chrome band claiming the
 // home-indicator zone as intentional UI rather than encroaching system
@@ -837,10 +767,7 @@
   background: var(--bg-header);
   align-items: center;
   justify-content: center;
-  // 18px gap on each side of the `||` separator (so the visible spacing
-  // between "github" and "twitch" totals ~36px + sep width). 12px felt
-  // cramped on narrow mobile widths where the footer's centered content
-  // band is short and the items read as touching the divider.
+  // 18px gap between footer items (12px felt cramped on narrow widths)
   gap: 18px;
   padding: 0 16px;
   font-size: .70rem;
@@ -858,13 +785,6 @@
         color: var(--accent);
       }
     }
-  }
-
-  &__sep {
-    color: var(--text-subtle);
-    // letter-spacing splits the two pipe glyphs slightly so "||" reads as a
-    // distinct divider rather than smushed double-pipe.
-    letter-spacing: .15em;
   }
 }
 

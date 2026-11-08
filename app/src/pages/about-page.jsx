@@ -1,29 +1,6 @@
 import { Link } from 'react-router-dom';
-import { useTwitchLive } from '../hooks/use-twitch-live';
-
-// twitch player iframe needs `parent` query params for every domain it can be
-// embedded on — the player blocks if the host doesn't match. include localhost
-// for `npm run dev` and the github-pages host for production. add 127.0.0.1
-// too since some lan-test setups hit the dev server via the raw IP.
-const TWITCH_PARENTS = [
-  'localhost',
-  '127.0.0.1',
-  'shockwavexr.github.io',
-];
-
-const twitchEmbedUrl = (channel) => {
-  const parents = TWITCH_PARENTS.map(p => `parent=${encodeURIComponent(p)}`).join('&');
-  return `https://player.twitch.tv/?channel=${channel}&${parents}&muted=true`;
-};
 
 export default function AboutPage() {
-  // channel comes from the cloudflare worker (TWITCH_CHANNEL var in
-  // wrangler.toml). that's the single source of truth — change the streamer
-  // handle there + redeploy worker, frontend stays untouched. localStorage
-  // cache in the hook keeps the link / display text from flashing empty
-  // on first paint.
-  const { isLive, channel } = useTwitchLive();
-
   return (
     <div className="about-page">
       <aside className="news-about">
@@ -54,31 +31,7 @@ export default function AboutPage() {
               github
             </a>
           </li>
-          {channel && (
-            <li>
-              <a href={`https://www.twitch.tv/${channel}`} target="_blank" rel="noopener noreferrer">
-                twitch
-              </a>
-            </li>
-          )}
         </ul>
-
-        {isLive && channel && (
-          <section className="twitch-embed" aria-label="live stream">
-            <div className="twitch-embed__header">
-              <span className="twitch-embed__pulse" />
-              <span className="twitch-embed__title">streaming now on twitch</span>
-            </div>
-            <div className="twitch-embed__frame">
-              <iframe
-                src={twitchEmbedUrl(channel)}
-                title={`${channel} live stream`}
-                allowFullScreen
-                allow="autoplay; fullscreen"
-              />
-            </div>
-          </section>
-        )}
       </aside>
     </div>
   );

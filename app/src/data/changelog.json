@@ -2,6 +2,10 @@
   {
     "date": "2026-11-08",
     "changes": [
+      "tcg pocket — card modal \"pulled from\": set + pack for each print, plus same-art reprints (e.g. genetic apex cards in deluxe pack: ex)",
+      "nav — removed section label next to the burger",
+      "current page bolded with a \"<\" marker in the menu, its section auto-expands on open",
+      "twitch — removed (about link + live embed, footer link, header live badge, menu live pip, worker /live endpoint)",
       "tcg pocket — data refresh: 5 new sets + promo-c, accessories +160",
       "accessory modal polish",
       "cards — 3520 → 4577. imported ruler of the skies (b4), team rocket's ambition (b4a), deluxe pack: mega (b4b), dual fusion (c1, first \"c\" series set), special pack: first partners (sp1), promo-c, and +25 promo-b. scraper maps PROMO-C → limitless P-C",
@@ -17,7 +21,8 @@
       "header — removed wordmark"
     ],
     "hashes": [
-      "c32de54"
+      "7fc2184",
+      "ab533d1"
     ]
   },
   {
