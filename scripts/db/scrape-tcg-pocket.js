@@ -42,8 +42,18 @@ const UA          = 'Mozilla/5.0 (compatible; pokedex-scraper)';
 // code; the stored `set` (used for grouping + the set name) stays on flibustier's
 // code so nothing else in the app has to know about the alias. this mismatch —
 // not a 404 block — is why promos never imported before.
-const LIMITLESS_CODE = { 'PROMO-A': 'P-A', 'PROMO-B': 'P-B' };
+const LIMITLESS_CODE = { 'PROMO-A': 'P-A', 'PROMO-B': 'P-B', 'PROMO-C': 'P-C' };
 const limitCode = (code) => LIMITLESS_CODE[code] || code;
+
+// sets limitless doesn't carry at all (no detail pages, cdn 403s). their stats
+// come from serebii's per-card pages instead (value = serebii set slug, e.g.
+// serebii.net/tcgpocket/firstpartners/001.shtml), and their images are
+// self-hosted under app/public/assets/tcgp/<SET>/<number>.webp — copied by hand
+// from flibustier's release zip (dist/images/cards-by-set/<SET>/), which is the
+// only place those images exist. image urls for these sets are stored RELATIVE
+// ("assets/tcgp/SP1/1.webp"); the page prefixes vite's BASE_URL at render time.
+const SEREBII_BASE = 'https://www.serebii.net/tcgpocket';
+const SEREBII_SETS = { SP1: 'firstpartners' };
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 function pad3(n)   { return String(n).padStart(3, '0'); }
@@ -84,6 +94,8 @@ function stripHtml(s) {
     .replace(/&#039;/g, "'")
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
+    .replace(/&eacute;/g, 'é')
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -207,6 +219,50 @@ function parseCardHtml(html) {
   };
 }
 
+// serebii energy icon basename → the single-letter cost codes limitless uses
+const SEREBII_ENERGY = {
+  grass: 'G', fire: 'R', water: 'W', lightning: 'L', psychic: 'P',
+  fighting: 'F', darkness: 'D', metal: 'M', colorless: 'C', dragon: 'N', electric: 'L',
+};
+// serebii names a few types differently than the rest of the data
+const SEREBII_TYPE = { electric: 'lightning' };
+const serebiiType = (t) => (t ? SEREBII_TYPE[t] || t : null);
+
+// parse one serebii tcgpocket card page → same detail shape as parseCardHtml.
+// only covers pokémon cards (all that serebii-backed sets contain so far);
+// stage isn't printed on serebii, so the caller fills it from flibustier.
+function parseSerebiiHtml(html) {
+  const start = html.indexOf('class="cardinfo"');
+  const end   = html.indexOf('Obtaining Method', start);
+  if (start === -1) return null;
+  const body = html.slice(start, end === -1 ? undefined : end);
+
+  const hpM = body.match(/<b>(\d+) HP/);
+  if (!hpM) return null;
+  const element = pick(body.slice(hpM.index), /\/tcgpocket\/image\/([a-z]+)\.png/);
+
+  // attack rows: cost icons in a width="15%" cell, then name/effect, then damage
+  const attacks = [];
+  const rows = body.matchAll(/<td align="center" width="15%">([\s\S]*?)<\/td>\s*<td>([\s\S]*?)<\/td>\s*<td colspan="2" align="center" class="main">([\s\S]*?)<\/td>/g);
+  for (const [, costHtml, infoHtml, dmgHtml] of rows) {
+    const cost = [...costHtml.matchAll(/\/card\/image\/([a-z]+)\.png/g)]
+      .map(m => SEREBII_ENERGY[m[1]] || '?');
+    const name   = stripHtml(pick(infoHtml, /<b>([\s\S]*?)<\/b>/) || '');
+    const effect = stripHtml(infoHtml.replace(/<span class="main">[\s\S]*?<\/span>/, '')).replace(/^\s*/, '');
+    attacks.push({ cost, name, damage: stripHtml(dmgHtml), effect: effect && !/[.!?]$/.test(effect) ? effect + '.' : effect });
+  }
+
+  const weakness = pick(body, /<b>Weakness<\/b><\/td>\s*<td><img[^>]*\/tcgpocket\/image\/([a-z]+)\.png/);
+  const retreatHtml = pick(body, /<b>Retreat Cost<\/b><\/td>\s*<td[^>]*>([\s\S]*?)<\/tr>/) || '';
+  const retreat = (retreatHtml.match(/colorless\.png/g) || []).length;
+  const illustrator = stripHtml(pick(html, /Illustration:\s*<a[^>]*>([\s\S]*?)<\/a>/) || '') || null;
+
+  return {
+    hp: Number(hpM[1]), element: serebiiType(element), card_type: 'pokemon', stage: null, evolves_from: null,
+    attacks, ability: null, weakness: serebiiType(weakness), retreat, illustrator, flavor_text: null,
+  };
+}
+
 async function fetchJson(url) {
   const { data } = await axios.get(url, { headers: { 'User-Agent': UA } });
   return data;
@@ -257,8 +313,24 @@ async function main() {
 
     const slice = limit ? indexCards.slice(0, limit) : indexCards;
 
+    // serebii-backed sets: flibustier numbers bonus cards negatively (SP1's
+    // three RGB "anomaly" Mews are -3/-2/-1) while serebii (and the in-game
+    // list) put them after the regular cards (28/29/30). remap to serebii's
+    // numbering so card numbers + "N/total" read naturally. the self-hosted
+    // image files are named with the remapped number too.
+    const serebiiSlug = SEREBII_SETS[set.code];
+    const posCount = indexCards.filter(c => c.number > 0).length;
+    const minNeg   = Math.min(0, ...indexCards.map(c => c.number));
+    const cardNum  = (n) => (serebiiSlug && n < 0) ? posCount + (n - minNeg + 1) : n;
+    let flibExtra = null;
+    if (serebiiSlug) {
+      const all = await fetchJson(`${FLIB_BASE}/cards.extra.json`);
+      flibExtra = new Map(all.filter(c => c.set === set.code).map(c => [c.number, c]));
+    }
+
     for (const idx of slice) {
-      const uid = `${set.code}-${idx.number}`;
+      const number = cardNum(idx.number);
+      const uid = `${set.code}-${number}`;
       const cacheKey = uid;
       let details;
 
@@ -270,10 +342,15 @@ async function main() {
           console.log(`  [dry] ${uid} ${idx.name} (${idx.rarity})`);
           continue;
         }
-        const url = `${LIMIT_BASE}/cards/${limitCode(set.code)}/${idx.number}`;
+        const url = serebiiSlug
+          ? `${SEREBII_BASE}/${serebiiSlug}/${pad3(number)}.shtml`
+          : `${LIMIT_BASE}/cards/${limitCode(set.code)}/${idx.number}`;
         try {
           const html = await fetchHtml(url);
-          details = parseCardHtml(html) || stubDetails();
+          details = (serebiiSlug ? parseSerebiiHtml(html) : parseCardHtml(html)) || stubDetails();
+          if (serebiiSlug && details.hp != null) {
+            details.stage = flibExtra.get(idx.number)?.stage ?? null;
+          }
         } catch (e) {
           // 404 = limitless doesn't host this card's page (some promos) → fall
           // back to a metadata-only stub so it still imports with its image.
@@ -300,7 +377,7 @@ async function main() {
         set: set.code,
         set_name: set.name?.en || set.code,
         set_release: set.releaseDate,
-        number: idx.number,
+        number,
         name: idx.name,
         rarity: idx.rarity,
         packs: idx.packs || [],
@@ -316,9 +393,10 @@ async function main() {
         ability:      details.ability,
         illustrator:  details.illustrator,
         flavor_text:  details.flavor_text,
-        // images composed from set + number (promos live under P-A/P-B on the CDN)
-        image_url:    cdnThumbUrl(limitCode(set.code), idx.number),
-        image_full:   cdnFullUrl(limitCode(set.code), idx.number),
+        // images composed from set + number (promos live under P-A/P-B on the CDN);
+        // serebii-backed sets are self-hosted (relative path, see SEREBII_SETS)
+        image_url:    serebiiSlug ? `assets/tcgp/${set.code}/${number}.webp` : cdnThumbUrl(limitCode(set.code), idx.number),
+        image_full:   serebiiSlug ? `assets/tcgp/${set.code}/${number}.webp` : cdnFullUrl(limitCode(set.code), idx.number),
       });
     }
   }

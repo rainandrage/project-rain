@@ -6,7 +6,16 @@ import { pulseElement } from '../utils/pulse';
 import { STORAGE_KEYS, getString } from '../utils/storage';
 import Img from '../components/img';
 import TcgpJumpNav from '../components/tcgp-jump-nav';
-import cards from '../data/tcg-pocket.json';
+import rawCards from '../data/tcg-pocket.json';
+
+// most card images hot-link limitless's cdn (absolute urls). sets limitless
+// doesn't carry (e.g. SP1) are self-hosted under public/assets/tcgp/ and stored
+// as relative paths — prefix vite's base so they resolve under /project-xr/.
+const BASE = import.meta.env?.BASE_URL || '/';
+const resolveImg = (u) => (u && !/^https?:/.test(u) ? BASE + u : u);
+const cards = rawCards.map(c => (/^https?:/.test(c.image_url)
+  ? c
+  : { ...c, image_url: resolveImg(c.image_url), image_full: resolveImg(c.image_full) }));
 
 // flat list of sets in newest-first order. used by:
 //   - the set filter dropdown (always shows sets in this order)
@@ -44,12 +53,13 @@ const RARITY_LABELS = {
   RR:  'Double Rare',    AR: 'Art Rare',         SR: 'Super Rare',
   SAR: 'Special Art Rare', IM: 'Immersive Rare', UR: 'Crown Rare',
   S:   'Shiny',          SSR:'Shiny Super Rare',
+  AN:  'Anomaly',
 };
 
 // canonical orders for filter dropdown — rarity ascends from common to crown,
 // element follows the energy-color sequence used everywhere in tcg pocket
 // (fire→water→…) so the filter feels predictable.
-const RARITY_ORDER  = ['C','U','R','RR','AR','SR','SAR','IM','UR','S','SSR'];
+const RARITY_ORDER  = ['C','U','R','RR','AR','SR','SAR','IM','UR','S','SSR','AN'];
 const ELEMENT_ORDER = ['fire','water','grass','lightning','psychic','fighting','darkness','metal','colorless','dragon','fairy'];
 
 // ── alt-print "echoes" ─────────────────────────────────────────────────────

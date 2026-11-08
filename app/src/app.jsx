@@ -463,12 +463,6 @@ function AppHeader({ theme, setTheme, a11y, setA11y }) {
         </div>
       </div>
 
-      {/* centered brand wordmark — intentionally not a link and pointer-events:
-          none in CSS so it reads as identity, not a clickable nav item. */}
-      <span className="site-wordmark" aria-label="project XR">
-        <span className="site-wordmark__project">project </span><span className="site-wordmark__xr">XR</span>
-      </span>
-
       <div className="header-right">
         <GlobalSearch />
         {isLive && <TwitchLiveBadge />}

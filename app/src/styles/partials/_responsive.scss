@@ -80,20 +80,6 @@
   }
   .header-sprites img { width: 42px; height: 42px; margin-right: 18px; }
 
-  // on phones the wordmark shrinks to just the accent "XR" — the full
-  // "project" word is dropped so the mark stays clear of the burger chip and
-  // the search control on either side.
-  .site-wordmark__project {
-    display: none;
-  }
-
-  // ultra-narrow (≤ iphone SE 1st-gen, ~320px): even the bare "XR" collides
-  // with the longest burger label (tcgp accessories), so drop the wordmark
-  // entirely below 360px. every current phone is ≥ 375px.
-  @media (max-width: 359px) {
-    .site-wordmark { display: none; }
-  }
-
   // ── header buttons + dropdown nav ──
   // bump the burger / cog tap targets up to ~44×44 so they meet a11y
   // tap-target guidelines on phones. desktop default of 28×28 was too
@@ -138,13 +124,12 @@
   // bumped to 16px specifically so ios safari does NOT zoom the page on
   // focus — anything smaller triggers the autozoom, and there's no
   // user-initiated way to zoom back out once it fires.
-  // while the search is open on a phone, drop the burger's section label AND
-  // the "XR" wordmark so the expanded field has room between the burger and the
-  // cog — the burger icon alone keeps the menu reachable. (:has is supported on
+  // while the search is open on a phone, drop the burger's section label so
+  // the expanded field has room between the burger and the cog — the burger
+  // icon alone keeps the menu reachable. (:has is supported on
   // all modern ios/safari; where it isn't, they simply stay put — a benign
   // fallback.)
-  .site-header:has(.global-search.is-expanded) .settings-burger__label,
-  .site-header:has(.global-search.is-expanded) .site-wordmark {
+  .site-header:has(.global-search.is-expanded) .settings-burger__label {
     display: none;
   }
 

@@ -2336,6 +2336,23 @@
 // modal — same fixed-height + scrollable-rest pattern as the tcgp card modal
 // so the title pins and the hero/meta scroll. width is narrower since
 // accessories are displayed at native res rather than the larger card art.
+// profile icons whose bulbagarden upload has a rainbow ring baked into the
+// edge (flagged `ring: true` by scripts/db/detect-tcgp-icon-rings.js — the
+// game itself shows no border). clip just inside the ring (it starts at ~93%
+// of the radius) and scale back up so the art matches un-ringed icons' size.
+// `scale` (not transform) so it composes with the grid's hover transform.
+// clip-path also clips the img's own drop-shadow, so the shadow moves to the
+// wrapper for these.
+.tcgp-accessory--ring {
+  img {
+    clip-path: circle(45.5%);
+    scale: 1.1;
+    filter: none !important;
+  }
+  &.tcgp-accessory-thumb__img  { filter: drop-shadow(0 2px 6px color-mix(in srgb, #000 22%, transparent)); }
+  &.tcgp-accessory-modal__hero-box { filter: drop-shadow(0 4px 14px color-mix(in srgb, #000 26%, transparent)); }
+}
+
 .tcgp-accessory-modal {
   width: 460px;
   max-width: min(92vw, 460px);
@@ -2357,13 +2374,6 @@
   h2 { margin: 0; font-size: 1.1rem; text-align: center; }
 }
 
-.tcgp-accessory-modal__sub {
-  font-size: .72rem;
-  color: var(--text-muted);
-  letter-spacing: .03em;
-  text-transform: lowercase;
-}
-
 .tcgp-accessory-modal__scroll {
   flex: 1 1 0;
   min-height: 0;
@@ -2378,6 +2388,16 @@
 .tcgp-accessory-modal__hero {
   display: flex;
   justify-content: center;
+  // grow into the modal's leftover height (it's fixed-size) and center the art
+  // in it, so the image sits midway between the title and the "how to unlock"
+  // box (which ends up pinned to the bottom). no-shrink keeps tall art scrolling
+  // normally instead of being squashed.
+  flex: 1 0 auto;
+  align-items: center;
+  // the gap above the hero (header margin + scroll margin-top = 24px) is 12px
+  // bigger than the gap below it (scroll's 12px flex gap), which left the art
+  // visibly low-and-off. matching bottom padding balances the two.
+  padding-bottom: 12px;
 
   // the g-img wrapper carries the reserved box (inline width + aspect-ratio
   // from the item's dimensions), so the box has its final height before the
@@ -2409,6 +2429,10 @@
   padding: 10px 12px;
   background: var(--bg-sidebar);
   border-radius: var(--radius-sm);
+
+  // no unlock text: keep the box's space (so the art lines up with items
+  // that have one) but show nothing
+  &--empty { visibility: hidden; }
 }
 
 .tcgp-accessory-modal__obtain-label {
@@ -2425,14 +2449,6 @@
   line-height: 1.45;
   color: var(--text);
   text-align: center;
-}
-
-.tcgp-accessory-modal__meta {
-  margin: 0;
-  font-size: .72rem;
-  color: var(--text-subtle);
-  text-align: center;
-  font-variant-numeric: tabular-nums;
 }
 
 

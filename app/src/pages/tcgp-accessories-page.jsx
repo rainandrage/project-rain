@@ -70,7 +70,6 @@ function AccessoryModal({ item, modalRef, onClose, onPrev, onNext, closing, bump
           <button className="modal-cycle-arrow modal-cycle-arrow--prev" onClick={onPrev} aria-label="previous">‹</button>
           <div className="tcgp-accessory-modal__title">
             <h2>{item.name}</h2>
-            <span className="tcgp-accessory-modal__sub">{item.category_label}</span>
           </div>
           <button className="modal-cycle-arrow modal-cycle-arrow--next" onClick={onNext} aria-label="next">›</button>
         </div>
@@ -83,7 +82,7 @@ function AccessoryModal({ item, modalRef, onClose, onPrev, onNext, closing, bump
                 attribute-application order can race the first request. */}
             <Img
               key={item.uid}
-              wrapClassName="tcgp-accessory-modal__hero-box"
+              wrapClassName={`tcgp-accessory-modal__hero-box${item.ring ? ' tcgp-accessory--ring' : ''}`}
               src={item.image_full}
               alt={item.name}
               referrerPolicy="no-referrer"
@@ -91,15 +90,16 @@ function AccessoryModal({ item, modalRef, onClose, onPrev, onNext, closing, bump
               style={item.width && item.height ? { width: `${item.width}px`, aspectRatio: `${item.width} / ${item.height}` } : undefined}
             />
           </div>
-          {item.obtain_method && (
-            <div className="tcgp-accessory-modal__obtain">
-              <span className="tcgp-accessory-modal__obtain-label">how to unlock</span>
-              <p className="tcgp-accessory-modal__obtain-text">{item.obtain_method}</p>
-            </div>
-          )}
-          <p className="tcgp-accessory-modal__meta">
-            {item.width}×{item.height}
-          </p>
+          {/* always rendered: items with no unlock text get an invisible
+              one-line placeholder so their art centers in the same spot as
+              the ones that have it, instead of dropping to the middle. */}
+          <div
+            className={`tcgp-accessory-modal__obtain${item.obtain_method ? '' : ' tcgp-accessory-modal__obtain--empty'}`}
+            aria-hidden={item.obtain_method ? undefined : true}
+          >
+            <span className="tcgp-accessory-modal__obtain-label">how to unlock</span>
+            <p className="tcgp-accessory-modal__obtain-text">{item.obtain_method || '—'}</p>
+          </div>
         </div>
       </div>
     </div>
@@ -168,7 +168,7 @@ export default function TCGPocketAccessoriesPage() {
                   alt={item.name}
                   loading="lazy"
                   referrerPolicy="no-referrer"
-                  wrapClassName="tcgp-accessory-thumb__img"
+                  wrapClassName={`tcgp-accessory-thumb__img${item.ring ? ' tcgp-accessory--ring' : ''}`}
                 />
               </button>
             ))}

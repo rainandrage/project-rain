@@ -100,47 +100,6 @@
   background: var(--bg);
 }
 
-// centered brand wordmark. deliberately NOT interactive — no border, no hover,
-// pointer-events disabled — so it reads as identity, not another nav control.
-// absolutely centered so it stays optically mid-header regardless of the
-// asymmetric burger (left) / search (right) widths flanking it.
-.site-wordmark {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 1;
-  pointer-events: none;
-  user-select: none;
-  white-space: nowrap;
-  font-size: 1rem;
-  font-weight: var(--fw-semibold);
-  letter-spacing: .01em;
-  color: var(--text);
-
-  // soft header-bg panel behind the text that fades out at its left/right
-  // edges — punches a clean, legible hole in the scrolling sprite strip
-  // without a hard chip edge that would read as a button.
-  &::before {
-    content: '';
-    position: absolute;
-    inset: -6px -20px;
-    z-index: -1;
-    background: var(--bg-header);
-    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%);
-            mask-image: linear-gradient(90deg, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%);
-  }
-
-  // "XR" reads as the brand suffix — accent color, a touch heavier, and
-  // italicized so it pops against the lowercase "project" ahead of it. same
-  // treatment in every theme (retro's accent is vivid enough to carry it too).
-  &__xr {
-    color: var(--accent);
-    font-weight: var(--fw-bold);
-    font-style: italic;
-  }
-}
-
 // section-name chip living inside the burger button — same bubble as the icon,
 // so the header always names the current section (news, pokedex, cards…).
 .settings-burger__label {
