@@ -507,40 +507,6 @@
     color: var(--text-muted);
   }
 
-  &__links {
-    list-style: none;
-    padding: 0;
-    margin: 0 0 12px;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px 0;     // horizontal gap absorbed into the pipe separator below
-
-    li {
-      display: inline-flex;
-      align-items: center;
-
-      // pipe separator between links — sits in the gap, picks up subtle text
-      // color so it reads as a divider rather than a link.
-      &:not(:last-child)::after {
-        content: '|';
-        margin: 0 14px;
-        color: var(--text-subtle);
-        opacity: .5;
-        font-weight: var(--fw-regular);
-      }
-    }
-
-    a {
-      font-size: .88rem;
-      font-weight: var(--fw-semibold);
-      color: var(--accent);
-      text-decoration: none;
-
-      &:hover { color: var(--accent-hover); text-decoration: underline; }
-    }
-  }
-
   &__note {
     font-size: .8rem;
     color: var(--text-subtle);

@@ -22,15 +22,8 @@ export default function AboutPage() {
         <p>please, enjoy</p>
         <p>— jackson</p>
         <p className="news-about__changelog">
-          curious what's new? see the <Link to="/changelog">changelog</Link> →
+          curious what's new? see the <Link to="/changelog">changelog</Link>
         </p>
-        <ul className="news-about__links">
-          <li>
-            <a href="https://github.com/rainandrage" target="_blank" rel="noopener noreferrer">
-              github
-            </a>
-          </li>
-        </ul>
       </aside>
     </div>
   );

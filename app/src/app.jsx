@@ -628,21 +628,11 @@ export default function App() {
           down with the rest of the page during a pull). position: fixed
           anchors it to the visual viewport; .app-scroll has padding-bottom
           equal to the footer's height so content doesn't tuck behind it.
-          desktop shows the same external link as the about page (github).
-          in iOS PWA standalone, height collapses to
+          it carries no content now — in iOS PWA standalone, height collapses to
           env(safe-area-inset-bottom) and content is clipped via overflow,
           so the band claims the home-indicator zone as intentional UI. */}
       {typeof document !== 'undefined' && createPortal(
-        <footer className="site-footer-strip">
-          <a
-            href="https://github.com/rainandrage"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="site-footer-strip__link"
-          >
-            github
-          </a>
-        </footer>,
+        <footer className="site-footer-strip" />,
         document.body,
       )}
     </BrowserRouter>

@@ -738,8 +738,7 @@
 // site-header's chrome (bg-header + border) so the page reads as
 // sandwiched between matching top + bottom bands.
 //
-// desktop / browser: 44px tall, carries the github link (same as the
-// about page). in iOS PWA standalone the height collapses to
+// desktop / browser: hidden. carries no links anymore. in iOS PWA standalone the height collapses to
 // env(safe-area-inset-bottom) and the inner content is clipped via
 // overflow:hidden — what remains is just a thin chrome band claiming the
 // home-indicator zone as intentional UI rather than encroaching system
@@ -774,18 +773,6 @@
   color: var(--text-muted);
   transition: background-color .25s ease, border-color .25s ease;
 
-  &__link {
-    color: var(--text-muted);
-    font-weight: var(--fw-medium);
-    transition: color .15s ease;
-
-    // hover gated to pointer devices to avoid ios sticky-hover-after-tap.
-    @media (hover: hover) and (pointer: fine) {
-      &:hover {
-        color: var(--accent);
-      }
-    }
-  }
 }
 
 // in standalone, the footer collapses to a thin bg-header strip — much

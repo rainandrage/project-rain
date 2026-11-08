@@ -19,6 +19,9 @@
 // current uncommitted commit isn't in `git log` yet, so the changelog is
 // current as of the last commit — regenerate + commit alongside new work.
 //
+// opting a commit out: put "[skip changelog]" anywhere in its message and it
+// never appears on the site (housekeeping that visitors don't need to see).
+//
 // usage:
 //   node scripts/gen-changelog.mjs            # write changelog.json
 //   node scripts/gen-changelog.mjs --dry-run  # print summary, write nothing
@@ -76,8 +79,10 @@ const commits = raw
   .map(chunk => {
     const [hash, date, ...rest] = chunk.split(FLD);
     const body = rest.join(FLD); // body can't contain FLD, but be safe
+    if (/\[skip changelog\]/i.test(body)) return null;
     return { hash: hash.trim(), date: date.trim(), bullets: toBullets(body) };
   })
+  .filter(Boolean)
   .filter(c => c.bullets.length > 0);
 
 // group by date, newest-first (git log is already newest-first, so first
