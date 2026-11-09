@@ -23,19 +23,12 @@ const SECTIONED_BALLS = SECTIONS.map(s => ({
   items: balls.filter(b => b.category === s.key).sort(s.sort),
 })).filter(s => s.items.length);
 
-function BallModal({ ball, modalRef, onClose, onPrev, onNext, closing, bump }) {
-  // cycle pulse via WAAPI on every keyboard / tap-arrow cycle.
-  useEffect(() => {
-    if (bump.n === 0) return;
-    const anim = pulseElement(modalRef.current);
-    return () => anim?.cancel();
-  }, [bump.n, modalRef]);
+function BallModal({ ball, modalRef, onClose, closing }) {
 
   return (
     <div className={`ability-modal-overlay${closing ? ' closing' : ''}`} onClick={onClose}>
       <div ref={modalRef} className="ball-modal" onClick={e => e.stopPropagation()}>
         <div className="ball-modal__header">
-          <button className="modal-cycle-arrow modal-cycle-arrow--prev" onClick={onPrev} aria-label="previous">‹</button>
           <div className="ball-modal__title">
             {ball.sprite && <img src={ball.sprite} alt={ball.name} />}
             <div className="ball-modal__title-text">
@@ -47,7 +40,6 @@ function BallModal({ ball, modalRef, onClose, onPrev, onNext, closing, bump }) {
               )}
             </div>
           </div>
-          <button className="modal-cycle-arrow modal-cycle-arrow--next" onClick={onNext} aria-label="next">›</button>
         </div>
         {ball.effect && <p className="ball-modal__effect">{ball.effect}</p>}
         {ball.flavor_text && <p className="ball-modal__flavor">{ball.flavor_text}</p>}
@@ -76,7 +68,7 @@ export default function PokeballsPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const initialOpenId = location.state?.openId ?? null;
-  const { current: currentBall, bump, modalRef, open, close, prev, next } =
+  const { current: currentBall, modalRef, open, close } =
     useModalCycleNav(SECTIONED_BALLS, initialOpenId);
   const { displayed: shownBall, isClosing } = useModalAnimation(currentBall);
 
@@ -118,10 +110,7 @@ export default function PokeballsPage() {
           ball={shownBall}
           modalRef={modalRef}
           onClose={close}
-          onPrev={prev}
-          onNext={next}
           closing={isClosing}
-          bump={bump}
         />
       )}
     </div>

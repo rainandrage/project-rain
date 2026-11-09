@@ -10,5 +10,10 @@
   },
   "magearna-original-mega": {
     "artwork_url": "https://archives.bulbagarden.net/media/upload/6/6b/0801Magearna-Original_Mega.png"
+  },
+  "pichu-spiky-eared": {
+    "sprite_shiny": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/172-spiky-eared.png",
+    "artwork_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/172-spiky-eared.png",
+    "artwork_shiny": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/172-spiky-eared.png"
   }
 }

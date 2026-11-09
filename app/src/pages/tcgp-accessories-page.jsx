@@ -37,13 +37,7 @@ const SECTIONED_ACCESSORIES = (() => {
   return CATEGORY_ORDER.map(k => byCat.get(k)).filter(Boolean);
 })();
 
-function AccessoryModal({ item, modalRef, onClose, onPrev, onNext, closing, bump }) {
-  // cycle-pulse on every prev/next via WAAPI — same pattern as the other modals.
-  useEffect(() => {
-    if (bump.n === 0) return;
-    const anim = pulseElement(modalRef.current);
-    return () => anim?.cancel();
-  }, [bump.n, modalRef]);
+function AccessoryModal({ item, modalRef, onClose, closing }) {
 
   // preload the full-res image proactively when the item changes. on a JS
   // Image object, setting `referrerPolicy = 'no-referrer'` BEFORE `src`
@@ -67,11 +61,9 @@ function AccessoryModal({ item, modalRef, onClose, onPrev, onNext, closing, bump
             the leader / tcgp-card modal pattern so users get the full modal
             height for image + reading rather than a tiny strip. */}
         <div className="ball-modal__header">
-          <button className="modal-cycle-arrow modal-cycle-arrow--prev" onClick={onPrev} aria-label="previous">‹</button>
           <div className="tcgp-accessory-modal__title">
             <h2>{item.name}</h2>
           </div>
-          <button className="modal-cycle-arrow modal-cycle-arrow--next" onClick={onNext} aria-label="next">›</button>
         </div>
 
         <div className="tcgp-accessory-modal__scroll">
@@ -121,7 +113,7 @@ export default function TCGPocketAccessoriesPage() {
 
   const visibleCount = visibleSections[0]?.items.length ?? 0;
 
-  const { current: currentItem, bump, modalRef, open, close, prev, next } = useModalCycleNav(visibleSections);
+  const { current: currentItem, modalRef, open, close } = useModalCycleNav(visibleSections);
   const { displayed: shownItem, isClosing } = useModalAnimation(currentItem);
 
   return (
@@ -181,10 +173,7 @@ export default function TCGPocketAccessoriesPage() {
           item={shownItem}
           modalRef={modalRef}
           onClose={close}
-          onPrev={prev}
-          onNext={next}
           closing={isClosing}
-          bump={bump}
         />
       )}
     </div>

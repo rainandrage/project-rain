@@ -241,6 +241,13 @@
   flex-direction: column;
   gap: 20px;
 
+  // name + cry button
+  .detail-title-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
   h1 {
     font-size: 1.8rem;
     font-weight: var(--fw-bold);
@@ -939,46 +946,6 @@
   &.closing { animation: modal-backdrop-out .25s ease forwards; }
   &.closing .ability-modal,
   &.closing .ball-modal { animation: modal-pop-out .25s ease-in forwards; }
-}
-
-// tappable prev/next arrows for cycling between items in the badges /
-// berries / pokeballs modals. integrated into the modal header alongside
-// the title and close button — earlier placement (absolute against the
-// overlay edges) read as cluttered floating chrome. inline arrows keep
-// the modal self-contained and the controls grouped. small enough not
-// to dominate the title row but large enough as tap targets (~32×32
-// visible, with header padding extending the comfortable hit zone).
-.modal-cycle-arrow {
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: 1px solid color-mix(in srgb, var(--text) 18%, transparent);
-  border-radius: 50%;
-  color: var(--text-muted);
-  font-size: 1.5rem;
-  font-weight: var(--fw-semibold);
-  line-height: 1;
-  cursor: pointer;
-  transition: background-color .15s ease, border-color .15s ease, color .15s ease, transform .15s ease;
-
-  // hover gated to true pointer devices — ios "fake-hover" sticks after a
-  // tap until the next tap elsewhere, leaving the button reading as
-  // "still selected" indefinitely. desktop mouse hover still works.
-  @media (hover: hover) and (pointer: fine) {
-    &:hover {
-      background: var(--bg);
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-  }
-
-  &:active {
-    transform: scale(.92);
-  }
 }
 
 .ability-modal {

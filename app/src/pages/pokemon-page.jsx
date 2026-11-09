@@ -8,6 +8,7 @@ import { STAT_LABELS_FULL as STAT_LABELS, EV_STAT_LABELS } from '../utils/stats'
 import { defensiveMatchups, MATCHUP_ORDER } from '../utils/type-chart';
 import { pulseElement } from '../utils/pulse';
 import AbilityModal from '../components/ability-modal';
+import CryButton from '../components/cry-button';
 import { useRetroSprites } from '../hooks/use-retro-sprites';
 import { useSpritesReady } from '../hooks/use-sprites-ready';
 import { getRetroGif, getRetroPng, getRetroCredit, cleanRetroCredit, displaySourceLabel } from '../utils/retro-sprite';
@@ -881,7 +882,18 @@ export default function PokemonPage() {
         <div className="detail-right">
           <div className="detail-name-row">
             <div>
-              <h1>{formatName(pokemon.name)}</h1>
+              <div className="detail-title-row">
+                <h1>{formatName(pokemon.name)}</h1>
+                {/* forms with their own cry (megas, regional forms, …) carry a
+                    cry_id; cosmetic forms share the species' cry */}
+                <CryButton
+                  key={activeFormData?.cry_id || pokemon.id}
+                  id={activeFormData?.cry_id || pokemon.id}
+                  slug={activeFormData?.cry_id ? formParam : pokemon.name}
+                  name={formatName(pokemon.name)}
+                  className="detail-cry"
+                />
+              </div>
               {pokemon.name_jp && (
                 <small className="jp-subtitle detail-jp">
                   {pokemon.name_jp}{pokemon.romaji ? ` [${pokemon.romaji}]` : ''}

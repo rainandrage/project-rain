@@ -17,7 +17,9 @@
   background: color-mix(in srgb, var(--brand-orange) 24%, var(--bg-card));
   color: var(--text);
 
-  &:active { filter: brightness(.97); }
+  // press feedback only when the tap is on the card itself (the stretched
+  // name link), not on the cry button sitting above it
+  &:has(.spotlight-card__name:active) { filter: brightness(.97); }
 
   &__info {
     flex: 1;
@@ -59,14 +61,6 @@
     }
   }
 
-  &__cry {
-    position: relative;
-    z-index: 1;
-    flex: none;
-    width: 34px;
-    height: 34px;
-  }
-
   &__meta {
     font-size: .9rem;
     color: var(--text-muted);
@@ -85,7 +79,32 @@
   }
 }
 
-.spotlight__cry {
+// the big cry button (spotlight card + pokémon page). doubled classes beat
+// the small shared .cry-btn below. 40px visible, with an invisible ring
+// taking the tap area to ~48px.
+.cry-btn.spotlight-card__cry,
+.cry-btn.detail-cry {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--text) 30%, transparent);
+  background: color-mix(in srgb, var(--bg-card) 70%, transparent);
+  -webkit-tap-highlight-color: transparent;
+
+  svg { width: 20px; height: 20px; }
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+  }
+}
+
+.cry-btn {
   width: 24px;
   height: 24px;
   display: inline-flex;
@@ -123,10 +142,10 @@
 // sound-wave arcs of the speaker glyph pulse while the cry plays, staggered so
 // they read as sound radiating outward. at rest they sit at full opacity as a
 // normal icon (no animation applied).
-.spotlight__cry--playing .spotlight__cry-wave {
+.cry-btn--playing .cry-btn-wave {
   animation: spotlight-cry-wave .7s ease-in-out infinite;
 }
-.spotlight__cry--playing .spotlight__cry-wave--2 { animation-delay: .16s; }
+.cry-btn--playing .cry-btn-wave--2 { animation-delay: .16s; }
 
 @keyframes spotlight-cry-ring {
   0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); }

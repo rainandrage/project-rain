@@ -99,15 +99,9 @@ function findLeader(name, region) {
   return null;
 }
 
-function BadgeModal({ badge, modalRef, onClose, onPrev, onNext, closing, bump }) {
+function BadgeModal({ badge, modalRef, onClose, closing }) {
   const navigate = useNavigate();
 
-  // cycle pulse via WAAPI on every keyboard / tap-arrow cycle.
-  useEffect(() => {
-    if (bump.n === 0) return;
-    const anim = pulseElement(modalRef.current);
-    return () => anim?.cancel();
-  }, [bump.n, modalRef]);
 
   const types       = splitTypes(badge.type);
   const leaderNames = splitDedup(badge.leader);
@@ -133,11 +127,9 @@ function BadgeModal({ badge, modalRef, onClose, onPrev, onNext, closing, bump })
     <div className={`ability-modal-overlay${closing ? ' closing' : ''}`} onClick={onClose}>
       <div ref={modalRef} className="ball-modal ball-modal--badge" onClick={e => e.stopPropagation()}>
         <div className="ball-modal__header">
-          <button className="modal-cycle-arrow modal-cycle-arrow--prev" onClick={onPrev} aria-label="previous">‹</button>
           <div className="ball-modal__title">
             <h2>{badge.name}</h2>
           </div>
-          <button className="modal-cycle-arrow modal-cycle-arrow--next" onClick={onNext} aria-label="next">›</button>
         </div>
 
         {badge.sprite && (
@@ -200,7 +192,7 @@ export default function BadgesPage() {
   // time wiring used by gym-leaders-page so behavior is consistent both
   // directions of the hand-off.
   const initialOpenId = location.state?.openId ?? null;
-  const { current: currentBadge, bump, modalRef, open, close, prev, next } =
+  const { current: currentBadge, modalRef, open, close } =
     useModalCycleNav(SECTIONED_BADGES, initialOpenId);
   const { displayed: shownBadge, isClosing } = useModalAnimation(currentBadge);
 
@@ -249,10 +241,7 @@ export default function BadgesPage() {
           badge={shownBadge}
           modalRef={modalRef}
           onClose={close}
-          onPrev={prev}
-          onNext={next}
           closing={isClosing}
-          bump={bump}
         />
       )}
     </div>

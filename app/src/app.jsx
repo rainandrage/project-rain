@@ -24,6 +24,7 @@ import ChangelogPage from './pages/changelog-page';
 import AboutPage from './pages/about-page';
 import SearchPage from './pages/search-page';
 import TransitionVeil from './components/transition-veil';
+import SwipeDismiss from './components/swipe-dismiss';
 import GlobalSearch from './components/global-search';
 import { RetroProvider } from './hooks/use-retro-sprites';
 
@@ -85,13 +86,8 @@ const NAV_SECTIONS = [
       { to: '/tcgp-accessories', label: 'accessories' },
     ],
   },
-  {
-    divider: true,
-    items: [
-      { to: '/about',     label: 'about' },
-      { to: '/changelog', label: 'changelog' },
-    ],
-  },
+  { divider: true, items: [{ to: '/about',     label: 'about' }] },
+  { divider: true, items: [{ to: '/changelog', label: 'changelog' }] },
 ];
 
 // flat path → label lookup, derived from NAV_SECTIONS, for the chip shown
@@ -645,6 +641,7 @@ export default function App() {
     <RetroProvider>
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <ScrollManager />
+      <SwipeDismiss />
       <AppHeader
         theme={theme} setTheme={setTheme}
         a11y={a11y} setA11y={setA11y}

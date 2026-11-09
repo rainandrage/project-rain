@@ -1,5 +1,3 @@
-import { Link } from 'react-router-dom';
-
 export default function AboutPage() {
   return (
     <div className="about-page">
@@ -21,9 +19,6 @@ export default function AboutPage() {
         </p>
         <p>please, enjoy</p>
         <p>— jackson</p>
-        <p className="news-about__changelog">
-          curious what's new? see the <Link to="/changelog">changelog</Link>
-        </p>
       </aside>
     </div>
   );

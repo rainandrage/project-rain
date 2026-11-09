@@ -513,15 +513,6 @@
     margin: 0;
   }
 
-  // inline cross-link to /changelog — accent link inside the personal note.
-  &__changelog a {
-    color: var(--accent);
-    font-weight: var(--fw-semibold);
-    text-decoration: none;
-
-    &:hover { color: var(--accent-hover); text-decoration: underline; }
-  }
-
   // branded intro — wordmark + tagline at the top of the about card. overrides
   // the base `p` rule (this block is a <p>) to stack the two lines tightly.
   &__brand {

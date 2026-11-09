@@ -12,21 +12,15 @@
 // data fetched via getPokemonById so flavor text + genus + jp/romaji are
 // all there.
 //
-// cry audio: played on click of the speaker icon, never autoplayed. two paths:
-//   • iOS/ipados safari — HTMLAudioElement.volume is a no-op there, so we route
-//     pokéapi ogg (CORS-clean via jsdelivr) through a Web Audio GainNode to
-//     tame the very-hot cries. createMediaElementSource works fine on iOS.
-//   • everywhere else, incl. macOS safari — a plain <audio> element playing
-//     showdown mp3, attenuated with element.volume. this sidesteps the macOS-
-//     safari webkit bug where createMediaElementSource() outputs silence (why
-//     the cry was mute on the mac but fine on iphone/ipad).
+// cry audio: see components/cry-button.jsx.
 //
 // layout (2026-11 redesign): a compact always-open card — kicker, name +
 // cry button, "#id · types · gen · region", artwork on the right. the old
 // collapsible card (and its per-day minimize state) is gone.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import CryButton from './cry-button';
 import ALL from '../data/pokemon.json';
 import { getPokemonById } from '../utils/api';
 import { formatName } from '../utils/format-name';
@@ -96,48 +90,11 @@ function pickTodayId(dateKey) {
   return POOL[hashDate(dateKey) % POOL.length];
 }
 
-// two cry sources (see the platform note at the top of the file):
-//   ogg — pokéapi via jsdelivr, CORS-clean so it can feed the iOS Web Audio
-//         gain node. keyed by dex id.
-//   mp3 — pokémon showdown, for the desktop plain-element path. keyed by the
-//         species' showdown id (slug with every non-alphanumeric stripped:
-//         ho-oh → hooh, mr-mime → mrmime).
-const CRY_OGG = (id) =>
-  `https://cdn.jsdelivr.net/gh/PokeAPI/cries@main/cries/pokemon/latest/${id}.ogg`;
-const CRY_ID  = (slug) => slug.toLowerCase().replace(/[^a-z0-9]/g, '');
-const CRY_MP3 = (slug) =>
-  `https://play.pokemonshowdown.com/audio/cries/${CRY_ID(slug)}.mp3`;
-
-// iOS/iPadOS is the only environment where element.volume is ignored (needs
-// the Web Audio path) AND where createMediaElementSource actually works.
-// iPadOS reports its UA as "Macintosh", so disambiguate real macs (no touch)
-// from ipads via maxTouchPoints.
-const IS_IOS = typeof navigator !== 'undefined' && (
-  /iPhone|iPad|iPod/.test(navigator.userAgent) ||
-  (/Macintosh/.test(navigator.userAgent) && (navigator.maxTouchPoints || 0) > 1)
-);
-
-// cries are mastered very hot, so we attenuate to CRY_VOLUME on playback — via
-// the Web Audio gain node on iOS, or element.volume on desktop (see playCry).
-// tweak the modifier/base to taste.
-const CRY_BASE_VOLUME = 0.4;
-const CRY_VOLUME_MODIFIER = 0.25;
-const CRY_VOLUME = CRY_BASE_VOLUME * CRY_VOLUME_MODIFIER;
-
 export default function Spotlight() {
   const dateKey     = useMemo(todayKey, []);
   const todayId     = useMemo(() => pickTodayId(dateKey), [dateKey]);
 
   const [pokemon, setPokemon] = useState(null);
-  // drives the cry button's "now playing" visual — flipped by the audio
-  // element's own play/ended events so it reflects real playback, not just
-  // the click (which matters when device volume makes the sound inaudible).
-  const [playing, setPlaying] = useState(false);
-  // reused across cry-button clicks; none drive renders, so refs. audioCtx +
-  // gain are only populated on the iOS Web Audio path.
-  const audioRef    = useRef(null);
-  const audioCtxRef = useRef(null);
-  const gainRef     = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -146,46 +103,6 @@ export default function Spotlight() {
       .catch(() => {});
     return () => { cancelled = true; };
   }, [todayId]);
-
-  function playCry() {
-    let a = audioRef.current;
-    if (!a) {
-      a = new Audio();
-      // reflect actual playback state on the button. attached once (the
-      // element is reused across clicks). 'ended' returns it to rest;
-      // 'pause'/'error' cover the interrupted/failed cases.
-      a.addEventListener('playing', () => setPlaying(true));
-      a.addEventListener('ended',   () => setPlaying(false));
-      a.addEventListener('pause',   () => setPlaying(false));
-      a.addEventListener('error',   () => setPlaying(false));
-
-      if (IS_IOS) {
-        // ogg through a Web Audio gain node — the only way to attenuate on iOS,
-        // where element.volume is ignored. createMediaElementSource works here.
-        a.crossOrigin = 'anonymous';
-        a.src = CRY_OGG(todayId);
-        const Ctx = window.AudioContext || window.webkitAudioContext;
-        if (Ctx) {
-          audioCtxRef.current = new Ctx();
-          const source = audioCtxRef.current.createMediaElementSource(a);
-          gainRef.current = audioCtxRef.current.createGain();
-          source.connect(gainRef.current).connect(audioCtxRef.current.destination);
-        }
-      } else {
-        // desktop (incl. macOS safari): plain element mp3, volume via
-        // element.volume — no createMediaElementSource, no macOS silence bug.
-        a.src = CRY_MP3(pokemon.name);
-      }
-      audioRef.current = a;
-    }
-    // re-apply volume each play so CRY_VOLUME tweaks hot-reload.
-    if (gainRef.current) gainRef.current.gain.value = CRY_VOLUME;
-    else a.volume = CRY_VOLUME;
-    // ios: the context can auto-suspend between plays; the click is a gesture.
-    if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume();
-    a.currentTime = 0;
-    a.play().catch(() => {});
-  }
 
   if (!pokemon) return null;
 
@@ -210,15 +127,7 @@ export default function Spotlight() {
           <Link to={`/pokemon/${pokemon.id}`} className="spotlight-card__name">
             {displayName}
           </Link>
-          <button
-            type="button"
-            className={`spotlight__cry spotlight-card__cry${playing ? ' spotlight__cry--playing' : ''}`}
-            onClick={playCry}
-            aria-label={playing ? `playing ${displayName} cry` : `play ${displayName} cry`}
-            title={playing ? 'playing…' : 'play cry'}
-          >
-            <SpeakerIcon />
-          </button>
+          <CryButton key={pokemon.id} id={pokemon.id} slug={pokemon.name} name={displayName} className="spotlight-card__cry" />
         </div>
         <span className="spotlight-card__meta">{meta}</span>
       </div>
@@ -226,15 +135,5 @@ export default function Spotlight() {
         <img src={artwork} alt="" className="spotlight-card__art" loading="lazy" />
       )}
     </article>
-  );
-}
-
-function SpeakerIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-      <path d="M8 2.5L4.5 5.5H2v5h2.5L8 13.5V2.5z" />
-      <path className="spotlight__cry-wave spotlight__cry-wave--1" d="M10.5 5.5c.8.6 1.3 1.5 1.3 2.5s-.5 1.9-1.3 2.5l-.6-.8c.6-.4.9-1 .9-1.7s-.3-1.3-.9-1.7l.6-.8z" />
-      <path className="spotlight__cry-wave spotlight__cry-wave--2" d="M12 3.5c1.8 1.1 3 3 3 4.5s-1.2 3.4-3 4.5l-.6-.8c1.5-.9 2.4-2.3 2.4-3.7s-.9-2.8-2.4-3.7l.6-.8z" />
-    </svg>
   );
 }

@@ -112,14 +112,9 @@ function tightenFlavor(text) {
     .join('\n\n');
 }
 
-function LeaderModal({ leader, modalRef, onClose, onPrev, onNext, closing, bump }) {
+function LeaderModal({ leader, modalRef, onClose, closing }) {
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (bump.n === 0) return;
-    const anim = pulseElement(modalRef.current);
-    return () => anim?.cancel();
-  }, [bump.n, modalRef]);
 
   const badge = findBadge(leader);
   const cityNames = splitDedup(leader.city);
@@ -146,7 +141,6 @@ function LeaderModal({ leader, modalRef, onClose, onPrev, onNext, closing, bump 
     <div className={`ability-modal-overlay${closing ? ' closing' : ''}`} onClick={onClose}>
       <div ref={modalRef} className="ball-modal ball-modal--leader" onClick={e => e.stopPropagation()}>
         <div className="ball-modal__header">
-          <button className="modal-cycle-arrow modal-cycle-arrow--prev" onClick={onPrev} aria-label="previous">‹</button>
           <div className="ball-modal__title">
             <h2>{leader.name}</h2>
             {leader.name_jp && (
@@ -155,7 +149,6 @@ function LeaderModal({ leader, modalRef, onClose, onPrev, onNext, closing, bump 
               </span>
             )}
           </div>
-          <button className="modal-cycle-arrow modal-cycle-arrow--next" onClick={onNext} aria-label="next">›</button>
         </div>
 
         {/* everything below the header scrolls together — hero + info chart
@@ -238,7 +231,7 @@ export default function GymLeadersPage() {
   // it's a uniform path that also lets back/forward + auto-open share the
   // same code instead of two separate effects.
   const initialOpenId = location.state?.openId ?? null;
-  const { current: currentLeader, bump, modalRef, open, close, prev, next } =
+  const { current: currentLeader, modalRef, open, close } =
     useModalCycleNav(SECTIONED_LEADERS, initialOpenId);
   const { displayed: shownLeader, isClosing } = useModalAnimation(currentLeader);
 
@@ -296,10 +289,7 @@ export default function GymLeadersPage() {
           leader={shownLeader}
           modalRef={modalRef}
           onClose={close}
-          onPrev={prev}
-          onNext={next}
           closing={isClosing}
-          bump={bump}
         />
       )}
     </div>

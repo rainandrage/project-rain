@@ -16,6 +16,32 @@ $safe-bottom: env(safe-area-inset-bottom, 0px);
   justify-content: center;
 }
 
+// phones read a size up across the board — nearly everything is rem-based,
+// so the root size scales text, chips and spacing together (a11y goes one
+// step further). things that wrap to a second line now are allowed to.
+@media (max-width: 640px) {
+  html { font-size: 18px; }
+  html[data-a11y='true'] { font-size: 20px; }
+}
+
+// popups sit in the space between the header strip and the bottom bar,
+// with breathing room on every side, instead of filling the screen and
+// sliding under the bar. boxes shrink to fit; their inner regions scroll.
+body:has(> .bottom-bar) {
+  .ability-modal-overlay,
+  .sprite-modal-overlay,
+  .form-picker-overlay {
+    box-sizing: border-box;
+    padding: calc(52px + 18px) 20px calc(#{$bar-gap} + #{$bar-h} + 18px + #{$safe-bottom});
+
+    > * {
+      max-width: 100%;
+      max-height: 100%;
+      box-sizing: border-box;
+    }
+  }
+}
+
 // keep page content clear of the floating bar
 html body:has(> .bottom-bar) .app-scroll {
   padding-bottom: calc(#{$bar-h} + #{$bar-gap} * 2 + #{$safe-bottom});
@@ -33,10 +59,10 @@ html body:has(> .bottom-bar) .app-scroll {
   gap: 4px;
   padding: 6px;
   box-sizing: border-box;
-  // the bar is deliberately the same ink in every theme — it's chrome, like a
-  // native tab bar — with a hairline so it still separates on dark themes.
-  background: #14161a;
-  border: 1px solid rgba(255, 255, 255, .08);
+  // the page's own card color with a bold outline in the theme's text color,
+  // so it reads clearly against the page in every theme.
+  background: var(--bg-card);
+  border: 2px solid var(--text);
   border-radius: 26px;
   box-shadow: 0 8px 28px rgba(20, 22, 26, .28);
 
@@ -59,9 +85,9 @@ html body:has(> .bottom-bar) .app-scroll {
     border: 0;
     border-radius: 20px;
     background: transparent;
-    color: #c9ced8;
+    color: var(--text-muted);
     font: inherit;
-    font-size: 12px;
+    font-size: 13.5px;
     font-weight: var(--fw-semibold);
     display: flex;
     flex-direction: column;
@@ -73,16 +99,16 @@ html body:has(> .bottom-bar) .app-scroll {
 
     svg { width: 22px; height: 22px; flex: none; }
 
-    &:active { background: #2a2e36; }
+    &:active { background: var(--bg-sidebar); }
   }
 
   // menu button = "you are here": filled, page name, brand-blue icon
   // (on the search page the search button takes that role instead)
   &:not(.bottom-bar--search) .settings-burger,
   .bottom-bar__search.is-current {
-    background: #2a2e36;
-    color: #ffffff;
-    svg { color: #7fb2ef; }
+    background: var(--bg-sidebar);
+    color: var(--text);
+    svg { color: var(--accent); }
   }
 
   // an open menu/settings button turns brand blue (and the menu shows ✕)
@@ -118,6 +144,38 @@ html body:has(> .bottom-bar) .app-scroll {
     border-radius: 28px;
     box-shadow: 0 12px 40px rgba(20, 22, 26, .3);
     transform-origin: bottom center;
+  }
+
+  // settings sheet: the desktop dropdown's type is tiny (.6–.85rem); on
+  // phones it reads at body size with thumb-sized controls.
+  .settings-modal:not(.features-modal) {
+    padding: 18px 18px 20px;
+    gap: 18px;
+
+    .settings-label    { font-size: .85rem; }
+    .settings-sublabel { font-size: .78rem; opacity: 1; }
+    .settings-section  { gap: 10px; }
+
+    .theme-select {
+      min-height: 50px;
+      padding: 0 14px;
+      font-size: 1.05rem;
+      border-radius: 14px;
+    }
+
+    .toggle-row {
+      min-height: 44px;
+      font-size: 1.05rem;
+    }
+
+    .toggle-switch {
+      width: 52px;
+      height: 30px;
+      &::after { top: 4px; left: 4px; width: 22px; height: 22px; }
+      &.on::after { transform: translateX(22px); }
+    }
+
+    .settings-hint { font-size: .9rem; color: var(--text-muted); }
   }
 
   // nav sheet: big, thumb-sized rows
@@ -201,10 +259,18 @@ html body:has(> .bottom-bar) .app-scroll {
       z-index: -1;
       background: var(--dim-color);
       pointer-events: none;
+      // swipe-down-to-close lightens the dim as the popup is dragged away
+      opacity: calc(1 - var(--swipe-p, 0));
       // bottom fade (compact only — --dim-fade is 0 elsewhere)
       -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - var(--dim-fade, 0px)), transparent 100%);
               mask-image: linear-gradient(to bottom, #000 calc(100% - var(--dim-fade, 0px)), transparent 100%);
     }
   }
   .sprite-modal-overlay { --dim-color: rgba(0, 0, 0, .6); }
+}
+
+// phones: card popup a touch tighter so the wordiest cards still fit
+body:has(> .bottom-bar) .tcgp-modal {
+  padding: 16px;
+  gap: 10px;
 }

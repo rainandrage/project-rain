@@ -1,8 +1,11 @@
-// page wrapper for /about — centers the existing .news-about card in the viewport.
+// page wrapper for /about — same top spacing as the other pages (news,
+// berries, etc.); the card's own news-feed top margin is dropped here.
 .about-page {
   max-width: 720px;
-  margin: 0 auto;
-  padding: 48px 24px 64px;
+  margin: 32px auto 80px;
+  padding: 0 20px;
+
+  .news-about { margin-top: 0; }
 
   // page title sits outside the card, matching the structure of /badges,
   // /pokeballs, /berries (.items-page > h1).
@@ -825,27 +828,16 @@
   padding: 20px;
   max-width: 380px;
   width: 90vw;
-  // fixed height (not min-) guarantees zero size jitter when cycling — empty
-  // space from short items shows up between body text and the bottom-pinned
-  // info grid, via margin-top: auto on __meta. value is sized generously above
-  // the measured max content so no berry/ball text ever clips at this size.
-  // pages override via &--berry modifier since berries have an extra row.
-  // overflow-y: auto guards against unexpected longer content landing later.
-  height: 320px;
+  // sized to its content (prev/next cycling is gone, so there's no longer a
+  // size jump to prevent). capped to the screen; scrolls only as a fallback.
+  // the leader / tcgp / accessory popups set their own sizes below.
+  height: auto;
+  max-height: 90vh;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   box-shadow: var(--shadow-lg);
   animation: modal-pop .25s cubic-bezier(.34, 1.56, .64, 1);
-
-  &--berry { height: 400px; }
-  // badge modal needs more vertical room than the 420px tried earlier:
-  // 6 horizontal info rows + 120px hero + header pushes the content past
-  // 420px, and the user reported fields cropping with no scroll. 480px
-  // fits all current badges without scroll on phone-class viewports;
-  // the base `overflow-y: auto` on .ball-modal still kicks in if any
-  // future badge ever exceeds it.
-  &--badge { height: 480px; }
 
   &__header {
     display: flex;
@@ -1893,9 +1885,10 @@
   }
 }
 
-// fixed-height modal — same vertical-split pattern as the leader modal.
-// hero card image + title pin to the top; everything else (stats, attacks,
-// ability, flavor, illustrator) lives in a scrollable lower region.
+// card popup — no inner scroll region (so swipe-down-to-close works from
+// anywhere): title, then the card with a side column (stats, or the other
+// prints when toggled), then moves + details at natural height. the box only
+// scrolls as a last resort on the very wordiest cards.
 //
 // max-width override matters: .ball-modal sets max-width:380px, which would
 // clamp this modal narrower than its 480px width. listing max-width here
@@ -1903,12 +1896,15 @@
 .tcgp-modal {
   width: 480px;
   max-width: min(92vw, 480px);
-  height: 720px;
+  height: auto;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  // override .ball-modal's overflow-y: auto — inner scroll region owns it
-  overflow-y: hidden;
+  gap: 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  > * { flex-shrink: 0; }
 }
 
 .tcgp-modal__title {
@@ -1916,86 +1912,181 @@
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  flex: 1;
   min-width: 0;
+  text-align: center;
 
   h2 {
     margin: 0;
-    font-size: 1.1rem;
-    text-align: center;
+    font-size: 1.15rem;
+    line-height: 1.2;
   }
 }
 
 .tcgp-modal__sub {
-  font-size: .72rem;
+  font-size: .8rem;
   color: var(--text-muted);
-  letter-spacing: .03em;
+  letter-spacing: .02em;
+
+  abbr { text-decoration: none; font-weight: var(--fw-bold); color: var(--text); }
 }
 
-.tcgp-modal__hero {
-  display: flex;
-  justify-content: center;
-  margin: 12px 0 14px;
+// card on the left (~44%), side column on the right
+.tcgp-modal__top {
+  display: grid;
+  grid-template-columns: 40% minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
 
-  // every tcg card shares the standard portrait shape (670×936), so we reserve
-  // a fixed box up front — the stats/attacks below no longer jump when the next
-  // card's image loads mid arrow-cycle. the <Img> spinner centers in the box.
-  // 280px tall keeps the scroll region roomy on iPad landscape (~750px tall).
+// the card is a button: tap for the full-size view
+.tcgp-modal__card {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .12s ease;
+
+  &:active { transform: scale(.97); }
+
+  // every tcg card shares the standard portrait shape (670×936); the box is
+  // reserved up front so nothing jumps while the image loads.
   .tcgp-modal__hero-box {
     display: block;
-    height: 280px;
+    width: 100%;
     aspect-ratio: 670 / 936;
-    max-width: 100%;
   }
 
   img {
     width: 100%;
     height: 100%;
     object-fit: contain;
-    // matches the thumb's 8px clip — see thumb comment for reasoning.
-    border-radius: 8px;
-    // subtle shadow lifts the card off the modal bg without overpowering
-    box-shadow: 0 4px 16px color-mix(in srgb, #000 18%, transparent);
+    border-radius: 6px;
+    box-shadow: 0 4px 14px color-mix(in srgb, #000 18%, transparent);
   }
 }
 
-// alt-print ("echoes") strip — a horizontally-scrollable row of thumbnails,
-// one per artwork of the functionally-identical card. tap to view that print.
-.tcgp-prints {
+.tcgp-modal__zoom-hint {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #fff;
+  background: color-mix(in srgb, #000 55%, transparent);
+  pointer-events: none;
+}
+
+// stats beside the card: a compact two-column grid of label-over-value cells
+.tcgp-modal__stats {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  align-content: start;
+
+  .tcgp-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 5px 8px;
+    min-width: 0;
+    font-size: .85rem;
+    line-height: 1.2;
+  }
+  .tcgp-stat--wide { grid-column: 1 / -1; }
+  .tcgp-stat__label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: .62rem;
+  }
+  .tcgp-stat__value {
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: break-word;
+  }
+  .tcgp-stat__sub {
+    display: block;
+    font-size: .78rem;
+    font-weight: var(--fw-medium);
+    color: var(--text-muted);
+    text-transform: none;
+  }
+  .tcgp-energy-icon { width: 15px; height: 15px; }
+}
+
+// moves / info / prints switch
+.tcgp-tabs {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 4px;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--bg-sidebar);
+
+  &__tab {
+    min-height: 40px;
+    padding: 0 6px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: .88rem;
+    font-weight: var(--fw-semibold);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+
+    &.is-on {
+      background: var(--bg-card);
+      color: var(--text);
+      box-shadow: 0 1px 3px color-mix(in srgb, #000 12%, transparent);
+    }
+  }
+}
+
+.tcgp-panels {
+  display: grid;
+  > .tcgp-panel { grid-area: 1 / 1; align-self: start; }
+}
+
+.tcgp-panel {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
 
-  &__label {
-    font-size: .72rem;
-    font-weight: var(--fw-semibold);
-    letter-spacing: .04em;
-    text-transform: uppercase;
-    color: var(--text-subtle);
-  }
+  &.is-off { visibility: hidden; pointer-events: none; }
+}
 
-  &__strip {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding-bottom: 4px;
-    scrollbar-width: thin;
-  }
+// other prints panel — a grid of the artworks (max ~7)
+.tcgp-panel.tcgp-prints {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .tcgp-print {
   position: relative;
-  flex: 0 0 auto;
-  width: 52px;
+  width: 100%;
   padding: 0;
   background: transparent;
   border: 2px solid transparent;
   border-radius: 6px;
   cursor: pointer;
   transition: border-color .15s ease, transform .12s ease;
+  -webkit-tap-highlight-color: transparent;
 
-  .g-img { display: block; width: 100%; }
-  img { display: block; width: 100%; height: auto; border-radius: 4px; }
+  .g-img { display: block; width: 100%; aspect-ratio: 670 / 936; }
+  img { display: block; width: 100%; height: 100%; object-fit: contain; border-radius: 4px; }
 
   &__rarity {
     position: absolute;
@@ -2019,17 +2110,36 @@
   &--active:active { transform: none; }
 }
 
-.tcgp-modal__scroll {
-  flex: 1 1 0;
-  min-height: 0;             // critical: lets flex item shrink below content
-  overflow-y: auto;
-  border-top: 1px solid var(--border);
-  padding-top: 12px;
-  padding-right: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+// full-size card view (tap the card in the popup). sized to the biggest
+// 670×936 box the overlay's content area allows.
+.card-zoom {
+  cursor: zoom-out;
+
+  &__card {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    container-type: size;
+    animation: modal-pop .22s cubic-bezier(.34, 1.4, .64, 1);
+
+    .g-img {
+      display: block;
+      width: min(100cqw, 100cqh * 670 / 936, 670px);
+      aspect-ratio: 670 / 936;
+    }
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 14px;
+      box-shadow: 0 10px 40px color-mix(in srgb, #000 40%, transparent);
+    }
+  }
 }
+.sprite-modal-overlay.card-zoom { padding: 24px; }
+body:has(> .bottom-bar) .sprite-modal-overlay.card-zoom { padding-left: 12px; padding-right: 12px; }
 
 .tcgp-stat-row {
   display: grid;

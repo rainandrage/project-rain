@@ -376,52 +376,68 @@ function sortItems(items, by, dir) {
   return dir === 'desc' ? arr.reverse() : arr;
 }
 
-function CardModal({ card, modalRef, onClose, onPrev, onNext, closing, bump, onEchoSelect }) {
-  // cycle-pulse on every prev/next via WAAPI — same pattern as the other modals.
-  useEffect(() => {
-    if (bump.n === 0) return;
-    const anim = pulseElement(modalRef.current);
-    return () => anim?.cancel();
-  }, [bump.n, modalRef]);
-
-  // reset the scroll region to the top whenever the shown card changes (prev/
-  // next cycling or picking another print) — otherwise a card scrolled partway
-  // down lands the next one mid-content.
-  const scrollRef = useRef(null);
-  useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = 0;
-  }, [card.uid]);
-
-  const isPokemon = card.card_type === 'pokemon';
+function CardModal({ card, modalRef, onClose, closing, onEchoSelect }) {
   const stageLabel = card.stage === 'basic'
     ? 'Basic'
     : (typeof card.stage === 'number' ? `Stage ${card.stage}` : null);
-  // alt prints of this exact card (same function, different art), or null
-  const prints = ECHOES.get(card.uid) || null;
+  // alt prints of this exact card (same function, different art), or null.
+  // one thumb per artwork: same-art reprints (e.g. a regular set + a deluxe
+  // set) collapse into one — "pulled from" in the info tab lists their sets.
+  // the shown card stands in for its own artwork so it reads as selected.
+  const artKey = (c) => (SAME_ART.get(c.uid) || [c])[0].uid;
+  const prints = (() => {
+    const all = ECHOES.get(card.uid);
+    if (!all) return null;
+    const byArt = new Map();
+    for (const p of all) {
+      const k = artKey(p);
+      if (!byArt.has(k) || p.uid === card.uid) byArt.set(k, p);
+    }
+    const list = [...byArt.values()];
+    return list.length > 1 ? list : null;
+  })();
+  const printsKey = ECHOES.get(card.uid)?.[0].uid ?? null;
+
+  // below the card, one panel at a time — moves (ability + attacks), info
+  // (pulled from, flavor, illustrator) or prints — so the popup never needs
+  // to scroll. resets to the first panel when a different card is opened;
+  // stays put while you tap through its prints.
+  const hasMoves = !!card.ability || card.attacks?.length > 0;
+  const tabs = [hasMoves && 'moves', 'info', prints && 'prints'].filter(Boolean);
+  const [tab, setTab] = useState(tabs[0]);
+  useEffect(() => { setTab(tabs[0]); }, [printsKey ?? card.uid]); // eslint-disable-line react-hooks/exhaustive-deps
+  const shownTab = tabs.includes(tab) ? tab : tabs[0];
+
+  // tap the card for the full-size image
+  const [zoom, setZoom] = useState(false);
+
+  // beside the card: [hp · retreat] [type · weakness] [stage (+ evolves from)].
+  // rarity rides in the subtitle. energy icons sit by the label so the word
+  // gets the cell's full width.
+  const stats = [
+    card.hp != null && { label: 'hp', value: card.hp },
+    card.retreat != null && { label: 'retreat', value: card.retreat },
+    card.element && { label: 'type', icon: card.element, value: card.element },
+    card.weakness && { label: 'weakness', icon: card.weakness, value: card.weakness },
+    stageLabel && { label: 'stage', value: stageLabel, sub: card.evolves_from && `from ${card.evolves_from}`, wide: true },
+  ].filter(Boolean);
 
   return (
     <div className={`ability-modal-overlay${closing ? ' closing' : ''}`} onClick={onClose}>
+      {/* no inner scroll region, so swipe-down-to-close works from anywhere.
+          the box itself only scrolls as a last resort. */}
       <div ref={modalRef} className="ball-modal tcgp-modal" onClick={e => e.stopPropagation()}>
-        {/* only the title bar pins to the top — everything below (hero + stats
-            + ability + attacks + flavor + illustrator) is in the scroll
-            region. previously the hero was also pinned, which left only ~30%
-            of the modal height for the actual card details. */}
-        <div className="ball-modal__header">
-          <button className="modal-cycle-arrow modal-cycle-arrow--prev" onClick={onPrev} aria-label="previous">‹</button>
-          <div className="tcgp-modal__title">
-            <h2>{card.name}</h2>
-            <span className="tcgp-modal__sub">
-              {card.set_name} · {cardNumber(card)}
-            </span>
-          </div>
-          <button className="modal-cycle-arrow modal-cycle-arrow--next" onClick={onNext} aria-label="next">›</button>
+        <div className="tcgp-modal__title">
+          <h2>{card.name}</h2>
+          <span className="tcgp-modal__sub">
+            {card.set_name} · {cardNumber(card)} · <abbr title={RARITY_LABELS[card.rarity] || card.rarity}>{card.rarity}</abbr>
+          </span>
         </div>
 
-        <div className="tcgp-modal__scroll" ref={scrollRef}>
-          <div className="tcgp-modal__hero">
-            {/* newer sets (B3a/B3b onward) don't host the 670px png full — it
-                403s and only the 367px webp exists. fall back to that so the
-                modal image always renders. */}
+        <div className="tcgp-modal__top">
+          {/* newer sets (B3a/B3b onward) don't host the 670px png full — it
+              403s and only the 367px webp exists, so fall back to that. */}
+          <button type="button" className="tcgp-modal__card" onClick={() => setZoom(true)} aria-label={`view ${card.name} full size`}>
             <Img
               src={card.image_full}
               fallbackSrc={card.image_full.replace(/_EN\.png$/, '_EN.webp')}
@@ -429,119 +445,58 @@ function CardModal({ card, modalRef, onClose, onPrev, onNext, closing, bump, onE
               loading="eager"
               wrapClassName="tcgp-modal__hero-box"
             />
-          </div>
-
-          {/* other prints: functionally-identical cards with different art.
-              tap a thumb to view that print's art in place; the active one
-              tapped again returns to the card the grid opened. */}
-          {prints && (
-            <div className="tcgp-prints">
-              <div className="tcgp-prints__label">
-                other prints · {prints.length} artworks
-              </div>
-              <div className="tcgp-prints__strip">
-                {prints.map((p) => {
-                  const active = p.uid === card.uid;
-                  const label = `${p.set_name} · ${cardNumber(p)} · ${RARITY_LABELS[p.rarity] || p.rarity}`;
-                  return (
-                    <button
-                      key={p.uid}
-                      type="button"
-                      className={`tcgp-print${active ? ' tcgp-print--active' : ''}`}
-                      onClick={() => { if (!active) onEchoSelect(p); }}
-                      title={label}
-                      aria-label={label}
-                      aria-pressed={active}
-                    >
-                      <Img src={p.image_url} alt="" loading="lazy" />
-                      <span className="tcgp-print__rarity">{p.rarity}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          <div className="tcgp-stat-row">
-            <span className="tcgp-stat">
-              <span className="tcgp-stat__label">rarity</span>
-              <span className="tcgp-stat__value">{card.rarity}</span>
+            <span className="tcgp-modal__zoom-hint" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" /></svg>
             </span>
-            {card.hp != null && (
-              <span className="tcgp-stat">
-                <span className="tcgp-stat__label">hp</span>
-                <span className="tcgp-stat__value">{card.hp}</span>
-              </span>
-            )}
-            {card.element && (
-              <span className="tcgp-stat">
-                <span className="tcgp-stat__label">type</span>
-                <span className="tcgp-stat__value tcgp-stat__value--type">
-                  <EnergyIcon element={card.element} className="tcgp-energy-icon" />
-                  {card.element}
-                </span>
-              </span>
-            )}
-            {stageLabel && (
-              <span className="tcgp-stat">
-                <span className="tcgp-stat__label">stage</span>
-                <span className="tcgp-stat__value">{stageLabel}</span>
-              </span>
-            )}
-            {card.evolves_from && (
-              <span className="tcgp-stat">
-                <span className="tcgp-stat__label">evolves from</span>
-                <span className="tcgp-stat__value">{card.evolves_from}</span>
-              </span>
-            )}
-            {card.weakness && (
-              <span className="tcgp-stat">
-                <span className="tcgp-stat__label">weakness</span>
-                <span className="tcgp-stat__value tcgp-stat__value--type">
-                  <EnergyIcon element={card.weakness} className="tcgp-energy-icon" />
-                  {card.weakness}
-                </span>
-              </span>
-            )}
-            {card.retreat != null && (
-              <span className="tcgp-stat">
-                <span className="tcgp-stat__label">retreat</span>
-                <span className="tcgp-stat__value">{card.retreat}</span>
-              </span>
-            )}
-          </div>
+          </button>
 
-          {/* where this art can be pulled: its own set/pack, plus straight
-              reprints elsewhere (e.g. a genetic apex card also in a deluxe pack) */}
-          {(() => {
-            const rows = pulledFrom(card);
-            const multi = rows.length > 1 || rows[0].numbers.length > 1;
-            return (
-              <div className="tcgp-packs">
-                <span className="tcgp-packs__label">pulled from</span>
-                <ul className="tcgp-packs__list">
-                  {rows.map((r) => (
-                    <li key={`${r.set_name}|${r.pack}`} className="tcgp-packs__row">
-                      <span className="tcgp-packs__set">{r.set_name}</span>
-                      {r.pack && <span className="tcgp-packs__pack">{r.pack}</span>}
-                      {multi && <span className="tcgp-packs__num">{r.numbers.join(', ')}</span>}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })()}
-
-          {card.ability && (
-            <div className="tcgp-ability">
-              <span className="tcgp-ability__name">{card.ability.name}</span>
-              {card.ability.effect && <p className="tcgp-ability__effect">{card.ability.effect}</p>}
-            </div>
+          {stats.length > 0 && (
+            <dl className="tcgp-modal__stats">
+              {stats.map(st => (
+                <div key={st.label} className={`tcgp-stat${st.wide ? ' tcgp-stat--wide' : ''}`}>
+                  <dt className="tcgp-stat__label">
+                    {st.label}
+                    {st.icon && <EnergyIcon element={st.icon} className="tcgp-energy-icon" />}
+                  </dt>
+                  <dd className="tcgp-stat__value">
+                    {st.value}
+                    {st.sub && <span className="tcgp-stat__sub">{st.sub}</span>}
+                  </dd>
+                </div>
+              ))}
+            </dl>
           )}
+        </div>
 
-          {card.attacks?.length > 0 && (
-            <div className="tcgp-attacks">
-              {card.attacks.map((a, i) => (
+        {tabs.length > 1 && (
+          <div className="tcgp-tabs" role="tablist" aria-label="card details">
+            {tabs.map(t => (
+              <button
+                key={t}
+                type="button"
+                role="tab"
+                aria-selected={shownTab === t}
+                className={`tcgp-tabs__tab${shownTab === t ? ' is-on' : ''}`}
+                onClick={() => setTab(t)}
+              >
+                {t === 'prints' ? `prints · ${prints.length}` : t}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* all panels share one grid cell, so the popup keeps the height of
+            the tallest one and doesn't jump when switching tabs */}
+        <div className="tcgp-panels">
+          {tabs.includes('moves') && (
+            <div className={`tcgp-panel${shownTab === 'moves' ? '' : ' is-off'}`} role="tabpanel" aria-hidden={shownTab !== 'moves'}>
+              {card.ability && (
+                <div className="tcgp-ability">
+                  <span className="tcgp-ability__name">{card.ability.name}</span>
+                  {card.ability.effect && <p className="tcgp-ability__effect">{card.ability.effect}</p>}
+                </div>
+              )}
+              {card.attacks?.map((a, i) => (
                 <div key={i} className="tcgp-attack">
                   <div className="tcgp-attack__row">
                     <span className="tcgp-attack__cost">
@@ -561,10 +516,80 @@ function CardModal({ card, modalRef, onClose, onPrev, onNext, closing, bump, onE
             </div>
           )}
 
-          {card.flavor_text && <p className="tcgp-flavor">{card.flavor_text}</p>}
+          {tabs.includes('info') && (
+            <div className={`tcgp-panel${shownTab === 'info' ? '' : ' is-off'}`} role="tabpanel" aria-hidden={shownTab !== 'info'}>
+              {/* where this art can be pulled: its own set/pack, plus straight
+                  reprints elsewhere (e.g. a genetic apex card also in a deluxe pack) */}
+              {(() => {
+                const rows = pulledFrom(card);
+                const multi = rows.length > 1 || rows[0].numbers.length > 1;
+                return (
+                  <div className="tcgp-packs">
+                    <span className="tcgp-packs__label">pulled from</span>
+                    <ul className="tcgp-packs__list">
+                      {rows.map((r) => (
+                        <li key={`${r.set_name}|${r.pack}`} className="tcgp-packs__row">
+                          <span className="tcgp-packs__set">{r.set_name}</span>
+                          {r.pack && <span className="tcgp-packs__pack">{r.pack}</span>}
+                          {multi && <span className="tcgp-packs__num">{r.numbers.join(', ')}</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })()}
+              {card.flavor_text && <p className="tcgp-flavor">{card.flavor_text}</p>}
+              {card.illustrator && <p className="tcgp-illustrator">illus. {card.illustrator}</p>}
+            </div>
+          )}
 
-          {card.illustrator && <p className="tcgp-illustrator">illus. {card.illustrator}</p>}
+          {prints && (
+            <div className={`tcgp-panel tcgp-prints${shownTab === 'prints' ? '' : ' is-off'}`} role="tabpanel" aria-label="other prints" aria-hidden={shownTab !== 'prints'}>
+              {prints.map((p) => {
+                const active = p.uid === card.uid;
+                const label = `${p.set_name} · ${cardNumber(p)} · ${RARITY_LABELS[p.rarity] || p.rarity}`;
+                return (
+                  <button
+                    key={p.uid}
+                    type="button"
+                    className={`tcgp-print${active ? ' tcgp-print--active' : ''}`}
+                    onClick={() => { if (!active) onEchoSelect(p); }}
+                    title={label}
+                    aria-label={label}
+                    aria-pressed={active}
+                  >
+                    <Img src={p.image_url} alt="" loading="lazy" />
+                    <span className="tcgp-print__rarity">{p.rarity}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
+      </div>
+      {zoom && <CardZoom card={card} onClose={() => setZoom(false)} />}
+    </div>
+  );
+}
+
+// full-size card view: the largest image the screen allows, over everything.
+// tap anywhere, Esc, or swipe down to close (it's one of the overlays
+// swipe-dismiss knows). clicks stop here so the card popup underneath stays.
+function CardZoom({ card, onClose }) {
+  useEffect(() => {
+    const h = (e) => { if (e.key === 'Escape') { e.stopImmediatePropagation(); onClose(); } };
+    window.addEventListener('keydown', h, true);
+    return () => window.removeEventListener('keydown', h, true);
+  }, [onClose]);
+  return (
+    <div className="sprite-modal-overlay card-zoom" onClick={(e) => { e.stopPropagation(); onClose(); }}>
+      <div className="card-zoom__card">
+        <Img
+          src={card.image_full}
+          fallbackSrc={card.image_full.replace(/_EN\.png$/, '_EN.webp')}
+          alt={card.name}
+          loading="eager"
+        />
       </div>
     </div>
   );
@@ -693,7 +718,7 @@ export default function TCGPocketPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const initialOpenId = location.state?.openId ?? null;
-  const { current: currentCard, bump, modalRef, open, close, prev, next } =
+  const { current: currentCard, modalRef, open, close } =
     useModalCycleNav(visibleSections, initialOpenId);
   const { displayed: shownCard, isClosing } = useModalAnimation(currentCard);
 
@@ -988,10 +1013,7 @@ export default function TCGPocketPage() {
           card={displayCard}
           modalRef={modalRef}
           onClose={close}
-          onPrev={prev}
-          onNext={next}
           closing={isClosing}
-          bump={bump}
           onEchoSelect={setEchoCard}
         />
       )}

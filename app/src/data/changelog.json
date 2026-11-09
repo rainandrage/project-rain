@@ -2,6 +2,17 @@
   {
     "date": "2026-11-08",
     "changes": [
+      "phones — popups sit between the header and the bottom bar with room around them, and swipe down to close",
+      "popups — removed the prev / next arrows; berry, pokéball and badge popups size to their content",
+      "tcg cards — card popup rebuilt with no scrolling: card + stats side by side, moves / info / prints tabs, tap the card for full size",
+      "tcg cards — the same art in a regular and a deluxe set shows as one print",
+      "phones — bigger text across the app and a bigger settings menu",
+      "bottom bar — now the page color with a bold outline",
+      "pokémon pages — cry button next to the name; megas, gmax and other special forms play their own cry",
+      "spotlight — bigger cry button, clean restarts on repeat presses, plays even on silent",
+      "forms — 183 forms (unown, vivillon, arceus, alcremie, spiky-eared pichu…) now show their own art instead of the base pokémon's",
+      "about — removed the changelog line and the empty space at the top; menu has a divider between about and changelog",
+      "icons — prod app icon letters get a black outline; dev icon uses black letters",
       "phones — new thumb nav: a floating bottom bar (menu with the page name · search · settings) replaces the top buttons, and menus open as sheets above it",
       "news — compact story rows, an all / tcg / games filter, and the daily spotlight as a compact card above the news",
       "default theme — brand colors: cool white with blue accents",
@@ -31,7 +42,8 @@
       "header — removed wordmark"
     ],
     "hashes": [
-      "004b654",
+      "0ba330d",
+      "08e7a1f",
       "9462515",
       "d08cfbc",
       "7adb85a",

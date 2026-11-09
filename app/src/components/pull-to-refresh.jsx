@@ -118,7 +118,10 @@ export default function PullToRefresh({ onRefresh, enabled = true }) {
     let direction = null;  // 'down' | 'up' | null — reset each touchstart
 
     const onStart = (e) => {
-      if (appScrollY() > 0 || refreshingRef.current) {
+      // touches on popups / the bottom bar / open menus aren't page pulls
+      // (popups have their own swipe-down-to-close)
+      const busy = e.target.closest?.('.ability-modal-overlay, .sprite-modal-overlay, .form-picker-overlay, .bottom-bar, .bottom-bar-scrim');
+      if (busy || appScrollY() > 0 || refreshingRef.current) {
         startY.current = null;
         return;
       }

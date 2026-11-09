@@ -1,31 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useBodyScrollLock } from './use-body-scroll-lock';
 
-// shared modal navigation behavior for the berry / pokeball / badge pages (and
-// any future item-grid page with a paginated modal). bundles three concerns:
+// shared modal state for the item-grid pages (berries / pokeballs / badges /
+// leaders / tcgp cards + accessories): which item's popup is open, Esc to
+// close, and the page scroll lock while one is open. swipe down to close is
+// app-wide (components/swipe-dismiss.jsx).
 //
-//   1. arrow-key bindings on window for Esc / ←  / →  (desktop keyboard nav)
-//   2. modulo cycling inside a sectioned list (sectionIdx + index)
-//   3. a `bump` counter + direction for the WAAPI pulse animation that fires
-//      on every cycle — same pulse on keyboard nav and on tappable arrows.
+// prev/next cycling between items (arrows, ← / → keys, the pulse) was removed
+// 2026-11-08 — popups are one item at a time; close and tap the next one.
+// the hook keeps its name so the pages' imports don't churn.
 //
-// touch users get tappable prev/next arrow buttons rendered inside each
-// modal page (see <ModalCycleArrows> usage in badges-page / berries-page /
-// pokeballs-page). the previous swipe gesture was removed in favor of
-// these arrows — swipes felt either glitchy (with mid-flight interruption)
-// or sluggish (without), and explicit tap targets are clearer + more
-// accessible across mobile + tablet.
-//
-// usage from the page component:
-//
-//   const { current, bump, modalRef, open, close, prev, next } =
-//     useModalCycleNav(SECTIONED_ITEMS);
-//
-//   // pass modalRef + bump to the Modal component; the page's modal
-//   // useEffect runs the pulse animation on bump.n change.
-//   <Modal modalRef={modalRef} item={current} bump={bump} ... />
-//   // and render arrows next to the modal:
-//   <button onClick={prev}>‹</button> <button onClick={next}>›</button>
+//   const { current, modalRef, open, close } = useModalCycleNav(SECTIONED_ITEMS);
 
 // initialId (optional) lets a page that arrived via cross-modal navigation
 // open a specific item's modal on first render — the lookup runs inside
@@ -44,58 +29,27 @@ export function useModalCycleNav(sections, initialId = null) {
     }
     return null;
   });
-  const [bump, setBump] = useState({ n: 0, dir: 0 });
-
-  const sectionsRef = useRef(sections);
-  sectionsRef.current = sections;
 
   const modalRef = useRef(null);
 
-  const open = useCallback((sectionIdx, index) => {
-    setSelected({ sectionIdx, index });
-    // reset bump so the new modal mounts with bump.n === 0 — otherwise the
-    // modal's `useEffect(... [bump.n])` would fire the cycle-pulse animation
-    // on first render (using whatever value bump held at the previous close),
-    // showing a stray pulse on top of the open-pop anim.
-    setBump({ n: 0, dir: 0 });
-  }, []);
-
+  const open  = useCallback((sectionIdx, index) => setSelected({ sectionIdx, index }), []);
   const close = useCallback(() => setSelected(null), []);
 
-  const cycle = useCallback((delta) => {
-    setSelected(s => {
-      if (!s) return s;
-      const len = sectionsRef.current[s.sectionIdx].items.length;
-      return { ...s, index: ((s.index + delta) % len + len) % len };
-    });
-    setBump(b => ({ n: b.n + 1, dir: delta }));
-  }, []);
-
-  const prev = useCallback(() => cycle(-1), [cycle]);
-  const next = useCallback(() => cycle(1),  [cycle]);
-
-  // global keyboard shortcuts. only bind when the modal is open so other pages
-  // / inputs aren't intercepted. Esc / ← / → are the universal cycling triad.
+  // Esc closes; only bound while a popup is open
   useEffect(() => {
     if (!selected) return;
-    const handler = (e) => {
-      if (e.key === 'Escape')          close();
-      else if (e.key === 'ArrowLeft')  { e.preventDefault(); prev(); }
-      else if (e.key === 'ArrowRight') { e.preventDefault(); next(); }
-    };
+    const handler = (e) => { if (e.key === 'Escape') close(); };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [selected, close, prev, next]);
+  }, [selected, close]);
 
-  // body scroll lock while any modal is open — without it, taps that drift
-  // even a few pixels can scroll the underlying page, which feels like the
-  // modal is wobbling under the user's finger. cycling between items keeps
-  // the lock; only flips off when the modal closes entirely.
+  // lock the page's scroll while a popup is open, so taps that drift a few
+  // pixels don't scroll the page underneath.
   useBodyScrollLock(!!selected);
 
   const current = selected
     ? sections[selected.sectionIdx].items[selected.index]
     : null;
 
-  return { selected, current, bump, modalRef, open, close, prev, next };
+  return { selected, current, modalRef, open, close };
 }
