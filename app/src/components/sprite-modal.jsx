@@ -1,81 +1,75 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import Img from './img';
+import { SlotBadges, useSlide } from './sprite-carousel';
 
-// modal that cycles through a pokemon's sprite variants — normal / shiny
-// / male / female / male-shiny / female-shiny depending on what's
-// available. opens when a user taps any sprite in the detail page's
-// sprite-row. left/right arrows + keyboard ← / → cycle. Esc or backdrop
-// tap closes.
+// full-size viewer for a pokémon's artwork variants — opens when the page's
+// SpriteCarousel image is tapped. ‹ › arrows, sideways swipe, or ← / → keys
+// cycle (the image follows your finger while swiping); swipe down / Esc /
+// backdrop closes.
 //
-// `slots` shape: [{ src, gender: 'male'|'female'|null, shiny: bool, alt }]
-export default function SpriteModal({ slots, startIndex = 0, pokemonName, onClose, closing = false }) {
-  const safeStart = Math.max(0, Math.min(startIndex, slots.length - 1));
-  const [idx, setIdx] = useState(safeStart);
-
+// controlled (`index` / `onIndex`) so the page's carousel lands on whatever
+// variant you ended on. every variant is mounted and stacked (only the
+// current one visible): cycling is instant instead of remounting + reloading
+// an image per tap, which is what made the old viewer feel unresponsive.
+//
+// `slots` shape: [{ src, gender: 'male'|'female'|null, shiny: bool }]
+export default function SpriteModal({ slots, index, onIndex, pokemonName, onClose, closing = false, retro = false }) {
   const total = slots.length;
-  const go = (delta) => setIdx(i => (i + delta + total) % total);
+  const { stageRef, handlers, slotStyle, step } = useSlide({ total, index, onIndex });
 
-  // close on Escape, cycle on arrow keys. listening on window so the
-  // user doesn't have to focus inside the modal first.
   useEffect(() => {
     const handler = (e) => {
       if (e.key === 'Escape') { onClose(); return; }
-      if (e.key === 'ArrowLeft')  { e.preventDefault(); go(-1); }
-      if (e.key === 'ArrowRight') { e.preventDefault(); go(1);  }
+      if (total < 2) return;
+      if (e.key === 'ArrowLeft')  { e.preventDefault(); step(-1); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [onClose, total]);
+  });
 
-  const slot = slots[idx];
+  const slot = slots[index];
   if (!slot) return null;
-
-  const label = describeSlot(slot, pokemonName);
 
   return (
     <div className={`sprite-modal-overlay${closing ? ' closing' : ''}`} onClick={onClose}>
       <div className="sprite-modal" onClick={e => e.stopPropagation()}>
         <button className="sprite-modal__close" onClick={onClose} aria-label="close">✕</button>
 
-        <div className="sprite-modal__stage">
+        <div className="sprite-modal__stage" ref={stageRef} {...handlers}>
+          {slots.map((s, i) => (
+            <Img
+              key={s.src + i}
+              src={s.src}
+              alt={i === index ? `${pokemonName}${s.gender ? ' ' + s.gender : ''}${s.shiny ? ' shiny' : ''}` : ''}
+              wrapClassName="sprite-modal__slot"
+              style={slotStyle(i)}
+              className={`sprite-modal__img${retro && !s.shiny ? ' is-retro' : ''}`}
+              draggable={false}
+            />
+          ))}
           {total > 1 && (
-            <button
-              className="sprite-modal__arrow sprite-modal__arrow--prev"
-              onClick={() => go(-1)}
-              aria-label="previous variant"
-            >‹</button>
-          )}
-
-          <Img
-            key={idx}
-            src={slot.src}
-            alt={slot.alt || `${pokemonName} ${label}`}
-            className="sprite-modal__img"
-          />
-
-          {total > 1 && (
-            <button
-              className="sprite-modal__arrow sprite-modal__arrow--next"
-              onClick={() => go(1)}
-              aria-label="next variant"
-            >›</button>
+            <>
+              <button className="sprite-modal__arrow sprite-modal__arrow--prev" onClick={() => step(-1)} aria-label="previous variant">‹</button>
+              <button className="sprite-modal__arrow sprite-modal__arrow--next" onClick={() => step(1)} aria-label="next variant">›</button>
+            </>
           )}
         </div>
 
         <div className="sprite-modal__badges">
-          {slot.gender === 'male'   && <span className="sprite-modal__pill sprite-modal__pill--male"   aria-label="male">{'♂︎'}</span>}
-          {slot.gender === 'female' && <span className="sprite-modal__pill sprite-modal__pill--female" aria-label="female">{'♀︎'}</span>}
-          {slot.shiny               && <span className="sprite-modal__pill sprite-modal__pill--shiny"  aria-label="shiny">shiny</span>}
-          {!slot.gender && !slot.shiny && <span className="sprite-modal__pill sprite-modal__pill--default">default</span>}
+          <SlotBadges slot={slot} />
+          {!slot.gender && !slot.shiny && <span className="slot-badge slot-badge--default">default</span>}
         </div>
 
         {total > 1 && (
-          <div className="sprite-modal__dots" aria-hidden="true">
+          <div className="sprite-modal__dots">
             {slots.map((_, i) => (
-              <span
+              <button
                 key={i}
-                className={`sprite-modal__dot${i === idx ? ' is-active' : ''}`}
-                onClick={() => setIdx(i)}
+                type="button"
+                className={`sprite-modal__dot${i === index ? ' is-active' : ''}`}
+                onClick={() => onIndex(i)}
+                aria-label={`variant ${i + 1}`}
               />
             ))}
           </div>
@@ -83,13 +77,4 @@ export default function SpriteModal({ slots, startIndex = 0, pokemonName, onClos
       </div>
     </div>
   );
-}
-
-function describeSlot(slot, name) {
-  const parts = [];
-  if (slot.gender === 'male')   parts.push('male');
-  if (slot.gender === 'female') parts.push('female');
-  if (slot.shiny)               parts.push('shiny');
-  if (!parts.length)            parts.push('default');
-  return parts.join(' ');
 }

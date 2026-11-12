@@ -14,6 +14,7 @@ import tcgPocketData from '../data/tcg-pocket.json';
 import berriesData from '../data/berries.json';
 import pokeballsData from '../data/pokeballs.json';
 import { formatName, formatFormName, formatSlug } from './format-name';
+import { EXCLUDED_FORMS } from './api';
 
 const PER_GROUP_LIMIT = 5;
 
@@ -47,7 +48,7 @@ const pokemonIndex = (() => {
     });
     if (p.form_data) {
       for (const formSlug of Object.keys(p.form_data)) {
-        if (formSlug === p.name) continue;
+        if (formSlug === p.name || EXCLUDED_FORMS.has(formSlug)) continue; // dropped from the dex (api.js)
         const fDisplay = formatFormName(formSlug);
         out.push({
           type: 'pokemon',

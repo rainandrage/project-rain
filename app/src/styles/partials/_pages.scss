@@ -2054,9 +2054,13 @@
   }
 }
 
+// fixed-height tab area so every card popup is the same size; content that
+// runs longer (wordy moves, 5+ prints) scrolls inside it. swipe-dismiss
+// already defers to a scrolled region, so swipe-to-close still works.
 .tcgp-panels {
-  display: grid;
-  > .tcgp-panel { grid-area: 1 / 1; align-self: start; }
+  height: 200px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .tcgp-panel {
@@ -2064,8 +2068,12 @@
   flex-direction: column;
   gap: 10px;
 
-  &.is-off { visibility: hidden; pointer-events: none; }
 }
+
+// only the active tab renders — the fixed height keeps the popup from
+// jumping. extra specificity so it beats `.tcgp-panel.tcgp-prints`'s
+// display: grid below (which was leaving the prints visible on every tab).
+.tcgp-panels > .tcgp-panel.is-off { display: none; }
 
 // other prints panel — a grid of the artworks (max ~7)
 .tcgp-panel.tcgp-prints {

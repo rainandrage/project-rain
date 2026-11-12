@@ -11,6 +11,7 @@ export const STORAGE_KEYS = {
   INLINE_FORMS:  'inlineForms',
   NAV_EXPANDED:  'navExpanded',  // {[label]: boolean} per labeled nav section
   FILTERS_OPEN:  'filtersOpen',  // boolean — mobile filter panel expanded/collapsed
+  RECENT_SEARCHES: 'recentSearches', // string[] — phone search sheet's recent queries, newest first
   XFADE_MODE:    'xfadeMode',    // cross-modal nav transition: 'snap' | 'view' | 'dip' | 'curtain' — mockup only
 };
 

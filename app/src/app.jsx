@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useMemo, Fragment } from 'react';
-import { createPortal } from 'react-dom';
+import { useState, useEffect, useRef, useMemo, useCallback, Fragment } from 'react';
+import { createPortal, flushSync } from 'react-dom';
 import { BrowserRouter, Routes, Route, Link, Navigate, useLocation, useNavigate, useNavigationType, useSearchParams } from 'react-router-dom';
 import { useModalAnimation } from './hooks/use-modal-animation';
 import { useBodyScrollLock } from './hooks/use-body-scroll-lock';
@@ -23,15 +23,17 @@ import TCGPocketAccessoriesPage from './pages/tcgp-accessories-page';
 import ChangelogPage from './pages/changelog-page';
 import AboutPage from './pages/about-page';
 import SearchPage from './pages/search-page';
+import GoPage from './pages/go-page';
 import TransitionVeil from './components/transition-veil';
 import SwipeDismiss from './components/swipe-dismiss';
 import GlobalSearch from './components/global-search';
+import SearchSheet from './components/search-sheet';
 import { RetroProvider } from './hooks/use-retro-sprites';
 
 // section flags:
 //   `divider: true` draws a hairline above the section. dividers go above
 //                   every labeled category (browse/tools/world) and above
-//                   the trailing `about` link so each header category
+//                   the trailing changelog / about links so each header category
 //                   reads as a distinct group.
 //   `label`         renders a small uppercase subheading above the section
 //                   so the eye can lock onto a category in one scan rather
@@ -50,6 +52,23 @@ const NAV_SECTIONS = [
     divider: true,
     items: [
       { to: '/pokedex', label: 'pokedex' },
+    ],
+  },
+  // separate game gets its own section. links inside lose the "tcg pocket"
+  // prefix since the section header already says it.
+  {
+    divider: true,
+    label: 'tcg pocket',
+    items: [
+      { to: '/tcgp',             label: 'cards' },
+      { to: '/tcgp-accessories', label: 'accessories' },
+    ],
+  },
+  // pokémon go — live raids / events / eggs / research (go-page.jsx)
+  {
+    divider: true,
+    items: [
+      { to: '/go', label: 'pokémon go' },
     ],
   },
   // visual catalogs. world content (gym leaders + lore) folded in here so
@@ -76,18 +95,8 @@ const NAV_SECTIONS = [
       { to: '/moves',   label: 'moves' },
     ],
   },
-  // separate game gets its own section. links inside lose the "tcg pocket"
-  // prefix since the section header already says it.
-  {
-    divider: true,
-    label: 'tcg pocket',
-    items: [
-      { to: '/tcgp',             label: 'cards' },
-      { to: '/tcgp-accessories', label: 'accessories' },
-    ],
-  },
-  { divider: true, items: [{ to: '/about',     label: 'about' }] },
   { divider: true, items: [{ to: '/changelog', label: 'changelog' }] },
+  { divider: true, items: [{ to: '/about',     label: 'about' }] },
 ];
 
 // flat path → label lookup, derived from NAV_SECTIONS, for the chip shown
@@ -308,6 +317,19 @@ function AppHeader({ theme, setTheme, a11y, setA11y }) {
   const sectionLabel = navLabelFor(location.pathname);
   const onSearchPage = location.pathname.startsWith('/search');
 
+  // phones: the search sheet over the current page (see search-sheet.jsx).
+  // kbUp tucks the bottom bar away while the keyboard is showing.
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [kbUp, setKbUp] = useState(false);
+  const searchInputRef = useRef(null);
+  const { displayed: searchShown, isClosing: searchClosing } = useModalAnimation(searchOpen, 240);
+  const closeSearch = useCallback(() => setSearchOpen(false), []);
+  // any navigation closes it
+  useEffect(() => { setSearchOpen(false); }, [location.key]);
+  // opening the menu or settings closes it
+  useEffect(() => { if (featuresOpen || visualsOpen) setSearchOpen(false); }, [featuresOpen, visualsOpen]);
+  useEffect(() => { if (!searchOpen) setKbUp(false); }, [searchOpen]);
+
   // expanded state for collapsible nav categories (browse / tools / world).
   // accordion behavior — only one section open at a time. opening a new
   // section collapses any others; clicking the same section toggles it
@@ -417,7 +439,9 @@ function AppHeader({ theme, setTheme, a11y, setA11y }) {
             <rect y="12" width="16" height="2" rx="1"/>
           </svg>
         )}
-        {compact && <span className="bottom-bar__label">{onSearchPage ? 'menu' : sectionLabel}</span>}
+        {/* always "menu" — the page name made it read like a "you are here"
+            tab rather than a button that opens more sections */}
+        {compact && <span className="bottom-bar__label">menu</span>}
       </button>
       {featuresShown && (
         <div className={`settings-modal features-modal${featuresClosing ? ' closing' : ''}`}>
@@ -544,12 +568,32 @@ function AppHeader({ theme, setTheme, a11y, setA11y }) {
           {(featuresShown || visualsShown) && (
             <div className={`bottom-bar-scrim${(featuresClosing || visualsClosing) ? ' closing' : ''}`} aria-hidden="true" />
           )}
-          <nav className={`bottom-bar${onSearchPage ? ' bottom-bar--search' : ''}`} aria-label="app">
+          {(searchOpen || searchShown) && (
+            <SearchSheet
+              open={searchOpen}
+              closing={searchClosing}
+              onClose={closeSearch}
+              inputRef={searchInputRef}
+              onKeyboard={setKbUp}
+            />
+          )}
+          <nav className={`bottom-bar${onSearchPage ? ' bottom-bar--search' : ''}${kbUp ? ' is-tucked' : ''}`} aria-label="app">
             {menuAnchor}
             <button
               type="button"
-              className={`settings-btn bottom-bar__search${onSearchPage ? ' is-current' : ''}`}
-              onClick={() => navigate('/search?focus=1')}
+              className={`settings-btn bottom-bar__search${onSearchPage || searchOpen ? ' is-current' : ''}`}
+              aria-expanded={searchOpen}
+              onClick={() => {
+                // focus has to happen inside this tap — ios only raises the
+                // keyboard for a focus() made during the gesture.
+                // on the full results page: just re-focus its field.
+                const field = onSearchPage && document.querySelector('.search-page__input');
+                if (field) { field.focus(); return; }
+                if (searchOpen) { setSearchOpen(false); return; }
+                // mount the sheet synchronously so its input exists, then focus
+                flushSync(() => setSearchOpen(true));
+                searchInputRef.current?.focus();
+              }}
               aria-label="search"
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="M20 20l-4.2-4.2" /></svg>
@@ -667,6 +711,7 @@ export default function App() {
           <Route path="/about"       element={<AboutPage />} />
           <Route path="/changelog"   element={<ChangelogPage />} />
           <Route path="/search"      element={<SearchPage />} />
+          <Route path="/go"          element={<GoPage />} />
         </Routes>
       </main>
       {/* footer chrome strip — rendered as a body-portal sibling of #root so

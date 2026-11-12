@@ -29,6 +29,10 @@
 // opting a commit out: put "[skip changelog]" anywhere in its message and it
 // never appears on the site (housekeeping that visitors don't need to see).
 //
+// commits that predate the tag (or that mix public + private topics) can't be
+// re-tagged without rewriting pushed history — hide their bullets here
+// instead: commit hash → list of regexes; any bullet matching one is dropped.
+//
 // usage:
 //   node scripts/gen-changelog.mjs            # write changelog.json
 //   node scripts/gen-changelog.mjs --dry-run  # print summary, write nothing
@@ -121,6 +125,18 @@ function toBullets(body) {
   return bullets;
 }
 
+const HIDDEN_BULLETS = {
+  d08cfbc: [/^rename — project XR → project rain/, /^site path \/project-rain\//, /^dropped the "expand your reality" tagline/],
+  '7adb85a': [/^twitch — removed/],
+  deaaadd: [/^project XR rebrand/, /^header restructure — centered non-interactive "project XR"/, /^vite base → \/project-xr\//],
+  b169ad3: [/^naming — internal package \+ lockfile names/],
+  ebc45a1: [/^github rename voltage770/],
+  d49b0db: [/^real twitch live wiring/],
+};
+const hidden = (hash, bullet) =>
+  Object.entries(HIDDEN_BULLETS).some(([h, res]) =>
+    (hash.startsWith(h) || h.startsWith(hash)) && res.some(re => re.test(bullet)));
+
 let inLegacy = false;
 const commits = raw
   .split(REC)
@@ -132,7 +148,8 @@ const commits = raw
     const h = hash.trim();
     if (h.startsWith(LEGACY_UNTIL) || LEGACY_UNTIL.startsWith(h)) inLegacy = true;
     if (/\[skip changelog\]/i.test(body)) return null;
-    return { hash: h, date: date.trim(), legacy: inLegacy, bullets: inLegacy ? toBullets(body) : lineBullets(body) };
+    const bullets = (inLegacy ? toBullets(body) : lineBullets(body)).filter(b => !hidden(h, b));
+    return { hash: h, date: date.trim(), legacy: inLegacy, bullets };
   })
   .filter(Boolean)
   .filter(c => c.bullets.length > 0);

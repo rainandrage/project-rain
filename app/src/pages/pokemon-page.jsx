@@ -6,14 +6,14 @@ import { useModalAnimation } from '../hooks/use-modal-animation';
 import { NAME_TO_ID, FORM_DATA, FORM_TO_BASE_ID, EXCLUDED_FORMS, getBaseFormLabel, FORM_SUFFIX_SPECIES, getOrderedIds } from '../utils/api';
 import { STAT_LABELS_FULL as STAT_LABELS, EV_STAT_LABELS } from '../utils/stats';
 import { defensiveMatchups, MATCHUP_ORDER } from '../utils/type-chart';
-import { pulseElement } from '../utils/pulse';
+import { pulseElement, keyPress } from '../utils/pulse';
 import AbilityModal from '../components/ability-modal';
 import CryButton from '../components/cry-button';
 import { useRetroSprites } from '../hooks/use-retro-sprites';
-import { useSpritesReady } from '../hooks/use-sprites-ready';
 import { getRetroGif, getRetroPng, getRetroCredit, cleanRetroCredit, displaySourceLabel } from '../utils/retro-sprite';
 import Img from '../components/img';
 import SpriteModal from '../components/sprite-modal';
+import SpriteCarousel, { useSlotIndex } from '../components/sprite-carousel';
 
 // returns a tier class for stat bar color
 function statTier(val) {
@@ -76,7 +76,7 @@ function GenderDisplay({ rate }) {
   );
 }
 
-// horizontal ratio bar — shown under the sprite-row when the species has
+// horizontal ratio bar — shown under the artwork carousel when the species has
 // a meaningful gender split (rate ≠ -1 and ≠ 0 and ≠ 8). reinforces the
 // 2-column M/F sprite layout above. for single-gender mons (rate 0 or
 // rate 8) the bar collapses to a single-color "100%" pill so the section
@@ -605,7 +605,7 @@ export default function PokemonPage() {
   const evoRef = useRef(null);
 
   // pokemon may still be null on the initial loading render — guard each
-  // access so the sprite-row variables are computed safely either way.
+  // access so the carousel variables are computed safely either way.
   // <Img> handles its own per-image loading state with a spinner.
   const activeFormData = pokemon && formParam && pokemon.form_data?.[formParam] ? pokemon.form_data[formParam] : null;
   // artwork chain: prefer HOME 3D-render urls (added by
@@ -648,7 +648,7 @@ export default function PokemonPage() {
   );
   const hasGenderVariant = !!spriteFemaleNormal && !speciesUsesGenderForms && !formParam;
 
-  // resolve the exact urls that the sprite-row will render given current
+  // resolve the exact urls that the carousel will render given current
   // retro/non-retro mode + form selection.
   // - normal: only the FORM'S own retro sprite (gif > png). no species
   //   fallback — showing base charizard's pixel art on the mega-x detail
@@ -664,31 +664,22 @@ export default function PokemonPage() {
     : null;
   const normalSrc = retro ? (retroNormal || artwork) : artwork;
   const shinySrc  = retro ? null : artworkSh;
-  const retroShiny = null; // legacy reference kept so the jsx below doesn't break
 
   // gender variants render in non-retro mode only (the gen-2 curator doesn't
   // index female sprites). when active, the row swaps from HD artwork to
   // matched sprite pairs so M and F look stylistically consistent.
   const showGenderVariant = !retro && hasGenderVariant;
 
-  // pick the slot URLs the sprite-row will actually render. group-gate
-  // them via useSpritesReady so a fast-loading male sprite doesn't pop
-  // in 200ms before the slower-loading shiny — both stay on a spinner
-  // until every slot is decoded, then reveal together.
-  const slotSrcs = showGenderVariant
-    ? [spriteMaleNormal, spriteMaleShiny, spriteFemaleNormal, spriteFemaleShiny].filter(Boolean)
-    : [normalSrc, shinySrc].filter(Boolean);
-  const spritesReady = useSpritesReady(slotSrcs);
 
   // slots for the enlarge-on-tap sprite modal — same set of urls the
-  // sprite-row renders, paired with their gender + shiny flags so the
+  // carousel cycles through, paired with their gender + shiny flags so the
   // modal can show the matching pill badge for each variant. nulls are
   // filtered out so the modal only ever cycles through actually-existing
   // images.
   // gendered ordering pairs by shiny-state rather than by gender —
   // normal-male → normal-female → shiny-male → shiny-female. cycling
   // through the modal then reads as "see both genders, then see both
-  // shinies" which matches the visual pairing of the sprite-row above.
+  // shinies".
   const spriteSlots = (showGenderVariant
     ? [
         { src: spriteMaleNormal,   gender: 'male',   shiny: false },
@@ -701,14 +692,11 @@ export default function PokemonPage() {
         { src: shinySrc,  gender: null, shiny: true  },
       ]
   ).filter(s => !!s.src);
-  // index inside spriteSlots for each of the sprite-row's <img> tags.
-  // -1 = not present (e.g. shiny when retro is on). used to seed the
-  // modal at the slot the user actually tapped.
-  const slotIndex = (gender, shiny) => spriteSlots.findIndex(s => (s.gender || null) === gender && !!s.shiny === !!shiny);
-
-  const [spriteModalIdx, setSpriteModalIdx] = useState(null);
-  const { displayed: spriteModalShown, isClosing: spriteModalClosing } = useModalAnimation(spriteModalIdx !== null);
-  const openSpriteModal = (i) => { if (i >= 0) setSpriteModalIdx(i); };
+  // which variant the page's carousel (and the full-size viewer) shows.
+  // shared, so closing the viewer leaves the page on the variant you ended on.
+  const [slotIdx, setSlotIdx] = useSlotIndex(spriteSlots);
+  const [spriteModalOpen, setSpriteModalOpen] = useState(false);
+  const { displayed: spriteModalShown, isClosing: spriteModalClosing } = useModalAnimation(spriteModalOpen);
 
   if (loading) return <div className="page-center">loading...</div>;
   if (error)   return <div className="page-center error">error: {error}</div>;
@@ -744,7 +732,7 @@ export default function PokemonPage() {
   return (
     <div className="detail-page">
       <div className="detail-top-row">
-        <button className="back-link" onClick={() => navigate(-1)}>← back</button>
+        <button className="back-link press-js" {...keyPress(() => navigate(-1))}>← back</button>
         <div className="detail-nav">
           {prevId != null && (
             <button onClick={() => goTo(prevId)}>← #{String(prevId).padStart(3, '0')}</button>
@@ -759,123 +747,37 @@ export default function PokemonPage() {
       <div ref={detailCardRef} className="detail-card">
         {/* left column: artwork + sprites + (optional) gender ratio bar */}
         <div className="detail-left">
-          <div className={`sprite-row${showGenderVariant ? ' sprite-row--gendered' : ''}`}>
-            {!spritesReady ? (
-              // group gate — every slot shows a single spinner until all
-              // images decode, then the real sprite-row swaps in. without
-              // this the male sprite renders ~100-300ms before the shiny
-              // when navigating prev/next, which reads as a jarring pop.
-              <div className="sprite-row__loader" aria-label="loading sprites">
-                <span className="sprite-row__spinner" />
-              </div>
-            ) : showGenderVariant ? (
-              <>
-                <div className="sprite-row__col">
-                  <img
-                    src={spriteMaleNormal}
-                    alt={`${pokemon.name} male`}
-                    className="detail-sprite"
-                    onClick={() => openSpriteModal(slotIndex('male', false))}
-                  />
-                  {/* the trailing U+FE0E variation selector forces text-style
-                      rendering of the ♂ glyph — without it ios swaps in a
-                      tall color-emoji presentation whose metrics push above
-                      the pill's outline on mobile. */}
-                  <div className="sprite-row__gender" aria-label="male">{'♂︎'}</div>
-                  {spriteMaleShiny && <>
-                    <img
-                      src={spriteMaleShiny}
-                      alt={`${pokemon.name} male shiny`}
-                      className="detail-sprite"
-                      onClick={() => openSpriteModal(slotIndex('male', true))}
-                    />
-                    <div className="sprite-row__shiny-label" aria-label="shiny" title="shiny variant"><ShinySparkle /></div>
+          {/* one image at a time — ‹ › / swipe through the variants, tap
+              for full size. fixed-size stage, so nothing below moves. */}
+          <SpriteCarousel
+            slots={spriteSlots}
+            index={slotIdx}
+            onIndex={setSlotIdx}
+            onOpen={() => setSpriteModalOpen(true)}
+            alt={pokemon.name}
+            retro={retro && !!retroNormal}
+            shinyIcon={<ShinySparkle />}
+            footer={retro && retroNormal && (() => {
+              const credit = getRetroCredit(formSlug, pokemon.name);
+              if (!credit) return null;
+              const artist = cleanRetroCredit(credit.artist);
+              const sourceLabel = displaySourceLabel(credit);
+              const sourceUrl = credit.creditUrl || credit.sourceUrl;
+              return (
+                <div className="retro-credit">
+                  [art by {artist}
+                  {sourceLabel && <>
+                    {' · '}
+                    {sourceUrl
+                      ? <a href={sourceUrl} target="_blank" rel="noreferrer">{sourceLabel}</a>
+                      : <span>{sourceLabel}</span>}
                   </>}
+                  ]
                 </div>
-                <div className="sprite-row__col">
-                  <img
-                    src={spriteFemaleNormal}
-                    alt={`${pokemon.name} female`}
-                    className="detail-sprite"
-                    onClick={() => openSpriteModal(slotIndex('female', false))}
-                  />
-                  <div className="sprite-row__gender sprite-row__gender--f" aria-label="female">{'♀︎'}</div>
-                  {spriteFemaleShiny && <>
-                    <img
-                      src={spriteFemaleShiny}
-                      alt={`${pokemon.name} female shiny`}
-                      className="detail-sprite"
-                      onClick={() => openSpriteModal(slotIndex('female', true))}
-                    />
-                    <div className="sprite-row__shiny-label" aria-label="shiny" title="shiny variant"><ShinySparkle /></div>
-                  </>}
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="sprite-row__shiny-stack">
-                  <img
-                    src={normalSrc}
-                    alt={pokemon.name}
-                    className={retro && retroNormal ? 'detail-artwork detail-artwork--retro' : 'detail-artwork'}
-                    onClick={() => openSpriteModal(slotIndex(null, false))}
-                  />
-                  {retro && retroNormal && (() => {
-                    const credit = getRetroCredit(formSlug, pokemon.name);
-                    if (!credit) return null;
-                    const artist = cleanRetroCredit(credit.artist);
-                    const sourceLabel = displaySourceLabel(credit);
-                    const sourceUrl = credit.creditUrl || credit.sourceUrl;
-                    return (
-                      <div className="retro-credit">
-                        [art by {artist}
-                        {sourceLabel && <>
-                          {' · '}
-                          {sourceUrl
-                            ? <a href={sourceUrl} target="_blank" rel="noreferrer">{sourceLabel}</a>
-                            : <span>{sourceLabel}</span>}
-                        </>}
-                        ]
-                      </div>
-                    );
-                  })()}
-                  {/* mobile-only placeholder — on mobile the row flips
-                      side-by-side, and without this the shiny column
-                      (which carries the ✨ label below it) is taller
-                      than the bare normal column, so flex centering
-                      pushes the normal sprite down out of alignment.
-                      desktop hides the placeholder since the columns
-                      stack vertically and the misalignment doesn't
-                      occur. */}
-                  {shinySrc && (
-                    <div className="sprite-row__shiny-label sprite-row__shiny-label--placeholder" aria-hidden="true">
-                      <ShinySparkle />
-                    </div>
-                  )}
-                </div>
-                {shinySrc && (
-                  <div className="sprite-row__shiny-stack">
-                    <img
-                      src={shinySrc}
-                      alt={`${pokemon.name} shiny`}
-                      className={retro && retroShiny ? 'detail-artwork detail-artwork--retro' : 'detail-artwork'}
-                      onClick={() => openSpriteModal(slotIndex(null, true))}
-                    />
-                    <div className="sprite-row__shiny-label" aria-label="shiny" title="shiny variant">
-                      <ShinySparkle />
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-          {/* gender ratio bar — visible for any non-genderless mon. when
-              the species also has visual variants (showGenderVariant), the
-              bar reinforces the M/F columns above; otherwise it shows
-              ratio without splitting the sprites. gated on spritesReady
-              so the bar doesn't briefly anchor under the loader spinner
-              and then jump down when the real sprite-row swaps in. */}
-          {spritesReady && <GenderRatioBar rate={pokemon.gender_rate} />}
+              );
+            })()}
+          />
+          <GenderRatioBar rate={pokemon.gender_rate} />
         </div>
 
         {/* right column: info */}
@@ -1042,10 +944,12 @@ export default function PokemonPage() {
       {spriteModalShown && (
         <SpriteModal
           slots={spriteSlots}
-          startIndex={spriteModalIdx ?? 0}
+          index={slotIdx}
+          onIndex={setSlotIdx}
           pokemonName={pokemon.name}
+          retro={retro && !!retroNormal}
           closing={spriteModalClosing}
-          onClose={() => setSpriteModalIdx(null)}
+          onClose={() => setSpriteModalOpen(false)}
         />
       )}
     </div>

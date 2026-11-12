@@ -1,4 +1,5 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { keyPress } from '../utils/pulse';
 import { formatName, formatFormName } from '../utils/format-name';
 import { useRetroSprites } from '../hooks/use-retro-sprites';
 import { getRetroPng, getRetroCredit, cleanRetroCredit, displaySourceLabel } from '../utils/retro-sprite';
@@ -15,6 +16,7 @@ function getStatValue(stats, sort) {
 
 export default function PokemonCard({ pokemon, shiny, sort }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const { retro } = useRetroSprites();
   const padId = String(pokemon.id).padStart(3, '0');
   const types = Array.isArray(pokemon.types) ? pokemon.types : [];
@@ -53,7 +55,16 @@ export default function PokemonCard({ pokemon, shiny, sort }) {
 
   return (
     <div className={`pokemon-card${retro ? ' is-retro' : ''}${retro && !retroAvailable ? ' is-retro-missing' : ''}`}>
-      <Link to={linkTo} state={{ from: location.pathname + location.search }} className="card-link">
+      <Link
+        to={linkTo}
+        state={{ from: location.pathname + location.search }}
+        className="card-link press-js"
+        // touch: the whole card presses like a key, then opens (keyPress)
+        {...keyPress(
+          () => navigate(linkTo, { state: { from: location.pathname + location.search } }),
+          { target: (el) => el.closest('.pokemon-card') },
+        )}
+      >
         <div className="card-header">
           <span className="pokemon-id">#{padId}</span>
           {statValue !== null && <span className="pokemon-stat-badge">{statValue}</span>}

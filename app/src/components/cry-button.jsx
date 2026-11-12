@@ -30,7 +30,7 @@ const CRY_MP3 = (slug) =>
 // the Web Audio gain node, or element.volume on the fallback (see playCry).
 // tweak the modifier/base to taste.
 const CRY_BASE_VOLUME = 0.4;
-const CRY_VOLUME_MODIFIER = 0.25;
+const CRY_VOLUME_MODIFIER = 0.175;
 const CRY_VOLUME = CRY_BASE_VOLUME * CRY_VOLUME_MODIFIER;
 
 export default function CryButton({ id, slug, name, className = '' }) {

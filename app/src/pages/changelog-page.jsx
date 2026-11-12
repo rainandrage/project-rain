@@ -2,9 +2,8 @@
 //
 // on-site changelog at /changelog. reads the static app/src/data/changelog.json
 // (generated from git history by scripts/gen-changelog.mjs) and renders
-// date-segmented entries — a date header followed by a bulleted list of what
-// shipped that day — newest-first, in the same line-segmented style as the
-// news page.
+// one collapsible row per date (newest first, newest open) — tap a date to
+// expand the bulleted list of what shipped that day.
 
 import changelog from '../data/changelog.json';
 
@@ -34,19 +33,24 @@ export default function ChangelogPage() {
       ) : (
         <div className="changelog-list">
           {changelog.map((entry, i) => (
-            <div key={entry.date} className="changelog-list__item">
-              {i > 0 && <hr className="news-divider" />}
-              <article className="changelog-entry">
+            // collapsed by default so the page is a scannable list of dates;
+            // the newest day starts open.
+            <details key={entry.date} className="changelog-entry" open={i === 0}>
+              <summary className="changelog-entry__head">
                 <time className="changelog-entry__date" dateTime={entry.date}>
                   {formatDate(entry.date)}
                 </time>
-                <ul className="changelog-entry__list">
-                  {entry.changes.map((change, j) => (
-                    <li key={j} className="changelog-entry__item">{change}</li>
-                  ))}
-                </ul>
-              </article>
-            </div>
+                <span className="changelog-entry__count">
+                  {entry.changes.length} {entry.changes.length === 1 ? 'change' : 'changes'}
+                </span>
+                <span className="changelog-entry__chev" aria-hidden="true" />
+              </summary>
+              <ul className="changelog-entry__list">
+                {entry.changes.map((change, j) => (
+                  <li key={j} className="changelog-entry__item">{change}</li>
+                ))}
+              </ul>
+            </details>
           ))}
         </div>
       )}

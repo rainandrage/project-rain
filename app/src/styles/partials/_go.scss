@@ -1,0 +1,283 @@
+// ─── pokémon go (/go — go-page.jsx) ──────────────────────────────────────────
+// hours → tabs (raids / eggs / research / rocket) → events. cards follow the
+// news page's look: card bg, soft border, brand pills with black text.
+
+.go-page {
+  max-width: 760px;
+  margin: 32px auto 80px;
+  padding: 0 20px;
+  color: var(--text);
+
+  &__head h1 { margin: 0; font-size: 1.6rem; line-height: 1.1; }
+  &__sub { margin: 2px 0 14px; font-size: .82rem; color: var(--text-muted); }
+}
+@media (max-width: 640px) {
+  .go-page { margin-top: 16px; padding: 0 16px; }
+}
+
+// next spotlight hour / raid hour — "next" in the title, time, then what's on
+.go-hours {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.go-hour {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+  border: 2px solid var(--text);
+  border-radius: 16px;
+  background: var(--bg-card);
+  font-size: .8rem;
+
+  b { font-size: .95rem; line-height: 1.25; }
+  b i { color: var(--text-muted); font-weight: var(--fw-medium); }
+  &__time { font-weight: var(--fw-semibold); }
+  &__what { margin-top: 2px; color: var(--text-muted); line-height: 1.3; }
+}
+.go-soon { color: var(--accent); font-weight: var(--fw-bold); }
+
+// tabs — sticky segmented control
+.go-tabs {
+  position: sticky;
+  top: 8px;
+  z-index: 5;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--bg-sidebar);
+
+  button {
+    position: relative;
+    flex: 1;
+    padding: 7px 4px;
+    border: 0;
+    border-radius: 10px;
+    background: none;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: .85rem;
+    font-weight: var(--fw-semibold);
+    &.is-on { background: var(--bg-card); color: var(--text); box-shadow: var(--shadow-sm); }
+  }
+}
+.go-frame { margin: 6px 2px 8px; font-size: .78rem; color: var(--text-muted); }
+
+// "new since your last visit"
+.go-new {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #e2463f;
+  box-shadow: 0 0 0 2px var(--bg-card);
+  &--tab { top: 5px; right: 8px; width: 7px; height: 7px; box-shadow: none; }
+}
+
+// ── raids ──
+.go-tier { display: flex; align-items: center; gap: 6px; margin: 14px 0 6px; font-size: .9rem; }
+.go-stars { color: #e7a92b; letter-spacing: -1px; }
+
+.go-mon {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-card);
+  color: inherit;
+  text-decoration: none;
+
+  > img { flex: none; width: 52px; height: 52px; object-fit: contain; }
+  &__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  &__name { font-weight: var(--fw-bold); font-size: .95rem; line-height: 1.2; }
+}
+.go-until { font-size: .72rem; font-weight: var(--fw-bold); color: var(--accent); }
+.go-types { display: flex; gap: 4px; .type-badge { font-size: .62rem; padding: 0 6px; } }
+.go-cp { font-size: .74rem; color: var(--text-muted); line-height: 1.3; }
+.go-wx { flex: none; display: flex; gap: 2px; img { width: 20px; height: 20px; } }
+.go-shiny { font-size: .8rem; }
+
+// ── eggs ──
+.go-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+
+  button {
+    flex: none;
+    padding: 4px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--bg-card);
+    color: var(--text);
+    font: inherit;
+    font-size: .82rem;
+    font-weight: var(--fw-semibold);
+    &.is-on { background: var(--text); border-color: var(--text); color: var(--bg-card); }
+  }
+}
+.go-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+.go-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 4px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-card);
+  color: inherit;
+  text-decoration: none;
+  font-size: .75rem;
+  font-weight: var(--fw-semibold);
+  text-align: center;
+
+  img { width: 56px; height: 56px; object-fit: contain; margin-bottom: 2px; }
+  &__shiny { position: absolute; top: 4px; right: 6px; }
+}
+.go-tag {
+  margin-top: 2px;
+  padding: 0 5px;
+  border-radius: 5px;
+  background: var(--bg-sidebar);
+  color: var(--text-muted);
+  font-size: .6rem;
+}
+
+// ── research ──
+.go-task {
+  margin-bottom: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-card);
+
+  p { margin: 0 0 6px; font-size: .88rem; font-weight: var(--fw-semibold); line-height: 1.3; }
+}
+.go-rewards { display: flex; flex-wrap: wrap; gap: 6px; }
+.go-reward {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px 2px 2px;
+  border-radius: 10px;
+  background: var(--bg-sidebar);
+  color: inherit;
+  text-decoration: none;
+  font-size: .74rem;
+  img { width: 30px; height: 30px; object-fit: contain; }
+}
+
+// ── rocket ──
+// capture-eligible: green tint + ring (gold would read as shiny), same
+// footprint as a plain icon so a slot's team still pairs up 2-per-row
+$capture-bg: #d9f2df;
+$capture-ring: #3fa65a;
+.go-key {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 2px 10px;
+  font-size: .8rem;
+  color: var(--text-muted);
+  &__swatch { flex: none; width: 18px; height: 18px; border-radius: 5px; background: $capture-bg; box-shadow: inset 0 0 0 2px $capture-ring; }
+}
+.go-grunt {
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-card);
+
+  &__head { font-size: .92rem; b { font-weight: var(--fw-bold); } small { color: var(--text-muted); font-size: .78rem; } }
+}
+.go-slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 6px; }
+.go-slot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: center;
+  gap: 2px;
+  min-height: 48px;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--bg-sidebar);
+
+  &__mon {
+    display: block;
+    border-radius: 9px;
+    img { display: block; width: 40px; height: 40px; object-fit: contain; }
+    &.is-capture { margin: -2px; padding: 2px; background: $capture-bg; box-shadow: inset 0 0 0 2px $capture-ring; }
+  }
+}
+
+// ── events ──
+.go-h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 24px 0 8px;
+  font-size: .72rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.go-count { padding: 0 8px; border-radius: 999px; background: var(--bg-sidebar); font-size: .7rem; letter-spacing: 0; }
+.go-events { display: flex; flex-direction: column; gap: 10px; }
+.go-ev {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg-card);
+  color: inherit;
+  text-decoration: none;
+
+  > img { flex: none; width: 88px; height: 56px; object-fit: cover; border-radius: 10px; background: var(--bg-sidebar); }
+  &__body { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+  &__name {
+    font-weight: var(--fw-bold);
+    font-size: .95rem;
+    line-height: 1.2;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  &__pill { padding: 0 7px; border-radius: 6px; color: #000; font-size: .7rem; font-weight: var(--fw-bold); white-space: nowrap; }
+  &__when {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 8px;
+    font-size: .74rem;
+    color: var(--text-muted);
+    b { color: var(--text); }
+  }
+}
+.go-more {
+  padding: 8px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: .85rem;
+  font-weight: var(--fw-bold);
+}
+
+// ereader: event pills go outlined, like the news pills
+[data-theme='ereader'] .go-ev__pill { background: transparent !important; color: var(--text); box-shadow: inset 0 0 0 1.5px var(--text); }

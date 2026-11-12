@@ -195,6 +195,38 @@ a,
   -webkit-tap-highlight-color: transparent;
 }
 
+// touch press feedback — with hover gone on phones/tablets, a tap had no
+// visible response. everything tappable presses like a keyboard key: down
+// while the finger is on it, straight back up on release, no bounce, no dim.
+// elements with their own `:active` style (more specific) keep it. things
+// that navigate away (pokedex cards, back) use keyPress() in utils/pulse.js
+// instead, so the key comes back up before the page changes.
+@media (hover: none) and (pointer: coarse) {
+  button,
+  a,
+  summary,
+  [role='button'],
+  [role='link'],
+  [role='tab'] {
+    transition-property: opacity, transform, scale, background-color, border-color, box-shadow, color;
+    transition-duration: .14s;
+    transition-timing-function: ease-out;
+  }
+  // `scale` (not transform) so it stacks on any transform the element
+  // already has instead of replacing it
+  button:active,
+  a:active,
+  summary:active,
+  [role='button']:active,
+  [role='link']:active,
+  [role='tab']:active {
+    scale: .93; // no dim — it washed images out white
+    transition-duration: .09s;
+  }
+  // keyPress() elements animate themselves
+  .press-js:active { scale: 1; }
+}
+
 img {
   display: block;
 }

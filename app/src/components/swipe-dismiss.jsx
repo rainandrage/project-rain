@@ -17,7 +17,7 @@ import { useEffect } from 'react';
 //     (horizontal strips like the tcgp "other prints" row keep working)
 // anything else is left to the browser untouched.
 
-const OVERLAYS = '.ability-modal-overlay, .sprite-modal-overlay, .form-picker-overlay';
+const OVERLAYS = '.ability-modal-overlay, .sprite-modal-overlay, .form-picker-overlay, .search-sheet-overlay';
 const LOCK_PX = 8;          // movement before we decide whose gesture it is
 const CLOSE_PX = 110;       // drag distance that closes on release
 const CLOSE_VELOCITY = 0.5; // px/ms — a quick flick closes even when short

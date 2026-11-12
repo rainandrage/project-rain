@@ -437,12 +437,17 @@
   // steps forward 6%. translateY lifts the whole card.
   .pokemon-sprite { transition: transform .25s ease; }
 
-  &:hover {
-    transform: translateY(-6px);
-    border-color: var(--accent);
-    box-shadow: var(--shadow-lg), 0 0 0 3px var(--accent);
+  // mouse only — on touch, :hover sticks to whatever card was under the last
+  // lifted finger (scroll flings, and the first card after tapping a menu
+  // link), so phones/tablets never get the lift.
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      transform: translateY(-6px);
+      border-color: var(--accent);
+      box-shadow: var(--shadow-lg), 0 0 0 3px var(--accent);
 
-    .pokemon-sprite { transform: scale(1.1); }
+      .pokemon-sprite { transform: scale(1.1); }
+    }
   }
 }
 

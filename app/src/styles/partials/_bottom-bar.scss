@@ -102,9 +102,9 @@ html body:has(> .bottom-bar) .app-scroll {
     &:active { background: var(--bg-sidebar); }
   }
 
-  // menu button = "you are here": filled, page name, brand-blue icon
-  // (on the search page the search button takes that role instead)
-  &:not(.bottom-bar--search) .settings-burger,
+  // the search button reads as current while you're on the search page or
+  // its sheet is open. (the menu button no longer does "you are here" — it's
+  // always just "menu", so it reads as something to open, not a tab.)
   .bottom-bar__search.is-current {
     background: var(--bg-sidebar);
     color: var(--text);
@@ -244,7 +244,8 @@ html body:has(> .bottom-bar) .app-scroll {
   .ability-modal-overlay,
   .sprite-modal-overlay,
   .form-picker-overlay,
-  .bottom-bar-scrim {
+  .bottom-bar-scrim,
+  .search-sheet-overlay {
     --dim-color: rgba(20, 22, 26, .45);
     background: transparent !important;
     isolation: isolate;
@@ -273,4 +274,195 @@ html body:has(> .bottom-bar) .app-scroll {
 body:has(> .bottom-bar) .tcgp-modal {
   padding: 16px;
   gap: 10px;
+}
+
+// ─── search sheet (phones) ────────────────────────────────────────────────────
+// opens over the current page from the bar's search button (search-sheet.jsx).
+// sits just above the bar; once the keyboard is up the bar tucks away and the
+// sheet rides on top of the keyboard (--search-kb, from visualViewport).
+.search-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 299; // under the bar, so its buttons (search = close) stay live
+  background: rgba(20, 22, 26, .45);
+  animation: modal-backdrop .2s ease;
+  &.closing { animation: modal-backdrop-out .24s ease forwards; }
+}
+
+.search-sheet {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: calc(#{$bar-gap} + #{$bar-h} + 10px + #{$safe-bottom});
+  max-height: calc(100dvh - 52px - 18px - #{$bar-gap} - #{$bar-h} - 10px - #{$safe-bottom});
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: 2px solid var(--text);
+  border-radius: 24px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, .25);
+  overflow: hidden;
+  animation: search-sheet-in .28s cubic-bezier(.2, .8, .2, 1);
+  transition: bottom .18s ease, max-height .18s ease;
+
+  .closing & { animation: search-sheet-out .22s ease-in forwards; }
+
+  .has-kb & {
+    bottom: calc(var(--search-kb, 0px) + 8px);
+    // visible height minus: the 8px gap above the keyboard, the notch /
+    // dynamic island (safe-area top, at least 20px for a plain tab), and 16px
+    // breathing gap so the first group label clears it
+    max-height: calc(var(--search-vvh, 100dvh) - 8px - max(env(safe-area-inset-top, 0px), 20px) - 16px);
+  }
+}
+
+@keyframes search-sheet-in  { from { transform: translateY(calc(100% + 120px)); } }
+@keyframes search-sheet-out { to   { transform: translateY(calc(100% + 120px)); } }
+
+.search-sheet__grab {
+  flex: none;
+  width: 40px;
+  height: 5px;
+  margin: 8px auto 2px;
+  border-radius: 3px;
+  background: var(--border);
+}
+
+.search-sheet__results {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px 12px 6px;
+  // short lists hug the field (auto top margin); long ones start at the top
+  // match and overflow at the bottom. (column-reverse cropped the top.)
+  display: flex;
+  flex-direction: column;
+  > .search-sheet__inner { margin-top: auto; }
+}
+
+.search-sheet__group {
+  margin: 12px 6px 4px;
+  font-size: .68rem;
+  font-weight: var(--fw-bold);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.search-sheet__hit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 6px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  &:active { background: var(--bg); }
+}
+
+.search-sheet__sprite {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  &--empty { border-radius: 10px; background: var(--bg); }
+  img { width: 100%; height: 100%; object-fit: contain; }
+}
+
+.search-sheet__text { min-width: 0; display: flex; flex-direction: column; }
+.search-sheet__name { font-size: .95rem; font-weight: var(--fw-medium); text-transform: capitalize; }
+.search-sheet__sub {
+  font-size: .75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-sheet__all {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: .85rem;
+  font-weight: var(--fw-bold);
+}
+
+.search-sheet__empty {
+  margin: 0;
+  padding: 16px 6px 8px;
+  font-size: .88rem;
+  color: var(--text-muted);
+}
+
+.search-sheet__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 4px 4px;
+
+  button {
+    padding: 5px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--bg);
+    color: var(--text);
+    font: inherit;
+    font-size: .82rem;
+  }
+}
+
+.search-sheet__field {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+
+  input {
+    flex: 1;
+    min-width: 0;
+    padding: 11px 14px;
+    border: 2px solid var(--text);
+    border-radius: 14px;
+    background: var(--bg);
+    color: var(--text);
+    font: inherit;
+    font-size: max(16px, 1rem); // ≥16px or ios zooms in on focus
+    outline: none;
+    -webkit-appearance: none;
+    &:focus { border-color: var(--accent); }
+  }
+}
+
+.search-sheet__close {
+  flex: none;
+  padding: 8px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-weight: var(--fw-bold);
+}
+
+// keyboard up: the bar slides away; the sheet takes its spot on the keyboard
+.bottom-bar {
+  transition: transform .22s ease, opacity .18s ease;
+  &.is-tucked {
+    transform: translateY(calc(100% + 40px));
+    opacity: 0;
+    pointer-events: none;
+  }
 }

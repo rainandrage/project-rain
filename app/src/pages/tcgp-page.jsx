@@ -485,8 +485,8 @@ function CardModal({ card, modalRef, onClose, closing, onEchoSelect }) {
           </div>
         )}
 
-        {/* all panels share one grid cell, so the popup keeps the height of
-            the tallest one and doesn't jump when switching tabs */}
+        {/* fixed-height panel area (scrolls when a tab runs long), so every
+            card popup is the same size and switching tabs never jumps */}
         <div className="tcgp-panels">
           {tabs.includes('moves') && (
             <div className={`tcgp-panel${shownTab === 'moves' ? '' : ' is-off'}`} role="tabpanel" aria-hidden={shownTab !== 'moves'}>

@@ -328,14 +328,43 @@
 }
 
 .changelog-entry {
+  border-bottom: 1px solid var(--border);
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 0;
+    cursor: pointer;
+    list-style: none;
+    -webkit-tap-highlight-color: transparent;
+    &::-webkit-details-marker { display: none; }
+  }
+
   &__date {
-    display: block;
     font-size: 1rem;
     font-weight: var(--fw-bold);
     letter-spacing: .03em;
     color: var(--text);
-    margin-bottom: 12px;
   }
+
+  &__count {
+    margin-left: auto;
+    font-size: .8rem;
+    color: var(--text-muted);
+  }
+
+  // chevron — points down closed, flips up open
+  &__chev {
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid var(--text-muted);
+    border-bottom: 2px solid var(--text-muted);
+    transform: translateY(-2px) rotate(45deg);
+    transition: transform .2s ease;
+  }
+  &[open] &__chev { transform: translateY(2px) rotate(-135deg); }
+  &[open] &__list { padding-bottom: 16px; }
 
   &__list {
     margin: 0;
@@ -707,13 +736,33 @@
   }
 
   &__meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: .85rem;
     color: var(--text-muted);
   }
 
+  // category pill — tinted box, black text (color set per label in news-page)
   &__label {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 1px 7px;
+    border-radius: 6px;
+    background: var(--label-bg, var(--bg-sidebar));
+    color: #000;
+    font-size: .78rem;
     font-weight: var(--fw-bold);
-    color: var(--accent);
+  }
+
+  // source · age, pinned right so it lines up row to row
+  &__src {
+    flex: none;
+    margin-left: auto;
+    white-space: nowrap;
   }
 }
 
@@ -726,4 +775,11 @@
 // phones: tighter top margin under the slim sprite band
 @media (max-width: 640px) {
   .news-page { margin-top: 16px; padding: 0 16px; }
+}
+
+// ereader: no color — outlined pill keeps the category distinct in mono
+[data-theme='ereader'] .news-row__label {
+  background: transparent;
+  color: var(--text);
+  box-shadow: inset 0 0 0 1.5px var(--text);
 }

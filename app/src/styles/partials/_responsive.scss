@@ -15,21 +15,8 @@
     padding: 28px;
   }
 
-  .detail-artwork {
-    width: 170px;
-    height: 170px;
-  }
+  .sprite-carousel { --stage: 200px; }
 
-  // tablet — detail-left grid track shrinks to 220px so the gendered
-  // sprite-row also needs smaller sprites to fit two columns + gap.
-  .sprite-row--gendered .detail-sprite {
-    width: 96px;
-    height: 96px;
-  }
-  .sprite-row__loader {
-    width: 170px;
-    height: 170px;
-  }
 
 
   .detail-page {
@@ -394,27 +381,8 @@
     padding: 20px 16px;
   }
 
-  // show default + shiny side by side on mobile
-  .sprite-row {
-    flex-direction: row;
-    justify-content: center;
-    gap: 24px;
-  }
 
-  // mobile only: reveal the placeholder pill under the normal sprite
-  // as an invisible block. takes the same dimensions as the real
-  // shiny-label below the shiny sprite, so the two columns end up
-  // the same height and `align-items: center` no longer pushes the
-  // normal sprite down relative to the shiny one.
-  .sprite-row__shiny-label--placeholder {
-    display: inline-flex;
-    visibility: hidden;
-  }
-
-  .detail-artwork {
-    width: 140px;
-    height: 140px;
-  }
+  .sprite-carousel { --stage: min(240px, 62vw); }
 
   .detail-right {
     gap: 16px;
@@ -455,12 +423,12 @@
   }
 
   .evo-arrow {
-    width: 80px;
+    min-width: 80px;
   }
 
   .evo-pokemon {
     padding: 8px;
-    width: 88px;
+    min-width: 88px;
 
     img { width: 60px; height: 60px; }
 

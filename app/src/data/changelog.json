@@ -1,5 +1,28 @@
 [
   {
+    "date": "2026-11-12",
+    "changes": [
+      "pokémon go — new page: next spotlight hour + raid hour, raids / eggs / research / rocket tabs, live and upcoming events; every pokémon links to its dex page",
+      "menu — tcg pocket moved under pokedex, pokémon go added after it, about moved to the end",
+      "bottom bar — the menu button always says \"menu\"",
+      "search — on phones, search opens a panel over the current page with the field above the keyboard, recent searches and a \"see all results\" link",
+      "search — forms removed from the dex no longer show up in results",
+      "pokémon pages — one image at a time: swipe or use ‹ › for male / female / shiny, tap for full size",
+      "pokémon pages — switching forms no longer shifts the scroll position",
+      "pokémon pages — names and conditions in the evolution chain no longer break mid-word",
+      "full-size pokémon images — instant switching, and the image follows your finger when you swipe",
+      "phones — buttons and cards press down like a key when tapped",
+      "pokedex — cards no longer stay highlighted after scrolling or tapping on phones",
+      "tcg cards — card popups are all the same height; long tabs scroll inside",
+      "news — category tags are colored boxes; source and time line up on the right",
+      "changelog — each day collapses; tap a date to expand it",
+      "cries — 30% quieter"
+    ],
+    "hashes": [
+      "2dea503"
+    ]
+  },
+  {
     "date": "2026-11-08",
     "changes": [
       "phones — popups sit between the header and the bottom bar with room around them, and swipe down to close",
@@ -22,13 +45,9 @@
       "icons — rr logo favicon",
       "\"ra/in\" home-screen + app icons (light/dark follow the device)",
       "brand master svg in design/brand",
-      "rename — project XR → project rain (repo project-rain, github rainandrage)",
-      "site path /project-rain/",
-      "dropped the \"expand your reality\" tagline",
       "tcg pocket — card modal \"pulled from\": set + pack for each print, plus same-art reprints (e.g. genetic apex cards in deluxe pack: ex)",
       "nav — removed section label next to the burger",
       "current page bolded with a \"<\" marker in the menu, its section auto-expands on open",
-      "twitch — removed (about link + live embed, footer link, header live badge, menu live pip, worker /live endpoint)",
       "tcg pocket — data refresh: 5 new sets + promo-c, accessories +160",
       "accessory modal polish",
       "cards — 3520 → 4577. imported ruler of the skies (b4), team rocket's ambition (b4a), deluxe pack: mega (b4b), dual fusion (c1, first \"c\" series set), special pack: first partners (sp1), promo-c, and +25 promo-b. scraper maps PROMO-C → limitless P-C",
@@ -42,10 +61,9 @@
       "header — removed wordmark"
     ],
     "hashes": [
-      "0ba330d",
+      "799ae1b",
       "08e7a1f",
       "9462515",
-      "d08cfbc",
       "7adb85a",
       "ab533d1"
     ]
@@ -73,10 +91,6 @@
       "cross-set reprints included. 2234 cards across 800 print groups; each thumb shows its rarity",
       "mobile header — the wordmark shrinks to just the accent \"XR\" on phones (full \"project\" hidden < 640px; whole mark hidden < 360px where the longest burger label would collide). tcgp burger labels drop the middot separator → \"tcgp cards\" / \"tcgp accessories\". opening the search still hides the burger label + wordmark to make room",
       "changelog generator — fixed over-splitting: rejoin hard-wrapped continuation lines, strip markdown \"- \"/\"* \" bullet markers and keep those whole (a \";\" inside an explicit bullet is prose, not a boundary), only split plain prose lines on \";\". removes the spurious mid-sentence bullet fragments in older entries (157 → 145 bullets)",
-      "naming — internal package + lockfile names pokedex-* → project-xr-* to match the rebrand (invisible identifiers; deploy uses npm install so no lockfile-strictness break)",
-      "project XR rebrand + repo→project-xr migration — site retitled to \"project XR\" across tab title, header wordmark, about page, pwa manifests, readme (github handle + shockwavexr.github.io domain left intact)",
-      "vite base → /project-xr/, 404 spa fallback rewritten, and /news is now the canonical home with the bare root redirecting there",
-      "header restructure — centered non-interactive \"project XR\" wordmark (soft header-bg fade over the sprite strip)",
       "burger now names the current section in-bubble (news, pokedex, tcgp · cards…)",
       "header search collapses to a magnifier that expands on tap, matching the cog",
       "redundant in-page h1 titles dropped across pages now that the section lives in the burger",
@@ -148,7 +162,6 @@
       "random sort + dropdown reorder w/ separator",
       "abilities audit — form_data abilities resolve (285 → 310)",
       "evo-branch alt-form parens via BRANCHING_FORMS",
-      "github rename voltage770 → shockwaveXR",
       "header buttons + search use var(--bg) for contrast"
     ],
     "hashes": [
@@ -248,7 +261,6 @@
     "date": "2026-04-27",
     "changes": [
       "custom favicon + apple-touch-icon system",
-      "real twitch live wiring (worker /live + frontend badge + about embed)",
       "pull-to-refresh redesign with bg-header reveal",
       "scroll-container architecture",
       "modal swipe replaces arrows",

@@ -63,8 +63,34 @@ function newsThumb(entry) {
   return null;
 }
 
+// category pill colors — light tints so black text reads on every theme.
+// known labels get a fixed color; anything new hashes into the palette.
+const LABEL_COLORS = {
+  'pokémon tcg':        '#f6c56b',
+  'pokémon tcg pocket': '#f9a66c',
+  'pokémon go':         '#8fd4a8',
+  'pokémon champions':  '#f08d8d',
+  'pokémon sleep':      '#b7a6ef',
+  'pokémon cafe':       '#f2b5d4',
+  'pokémon home':       '#9fd3f0',
+  'pokémon masters':    '#d9c48a',
+  'pokémon unite':      '#c5a2e6',
+  'scarlet & violet':   '#f3a0a0',
+  'legends z-a':        '#a8e0d8',
+  'anime':              '#ffd98a',
+  'competitive':        '#e8a5c4',
+};
+const LABEL_PALETTE = ['#9fd3f0', '#8fd4a8', '#f6c56b', '#f08d8d', '#b7a6ef', '#f2b5d4', '#a8e0d8', '#d9c48a'];
+function labelColor(label = '') {
+  const key = label.toLowerCase();
+  if (LABEL_COLORS[key]) return LABEL_COLORS[key];
+  let h = 0;
+  for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return LABEL_PALETTE[h % LABEL_PALETTE.length];
+}
+
 // compact news row — the whole row is the link (no separate "read on…" link).
-// thumb · 2-line headline · "label · source · age".
+// thumb · 2-line headline · [label pill]  ·····  source · age (right).
 function NewsEntry({ entry }) {
   const rel = formatRelative(entry.published);
   const age = rel ? rel.replace(/ ago$/, '') : formatDate(entry.published);
@@ -80,9 +106,10 @@ function NewsEntry({ entry }) {
         <span className="news-row__body">
           <span className="news-row__title">{entry.title}</span>
           <span className="news-row__meta">
-            <span className="news-row__label">{entry.label}</span>
-            {' · '}{entry.source_name}
-            {' · '}<time dateTime={entry.published || undefined}>{age}</time>
+            <span className="news-row__label" style={{ '--label-bg': labelColor(entry.label) }}>{entry.label}</span>
+            <span className="news-row__src">
+              {entry.source_name}{' · '}<time dateTime={entry.published || undefined}>{age}</time>
+            </span>
           </span>
         </span>
       </a>

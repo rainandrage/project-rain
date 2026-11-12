@@ -103,131 +103,159 @@
   &__source { opacity: .75; }
 }
 
-// sprite slot used by the gendered M/F detail-page rows. previously
-// rendered the 96×96 gen-5 BW pixel sprite with `image-rendering:
-// pixelated` for a crisp upscale, but the M/F pair now resolves to
-// pokemon HOME 3D renders (512×512 HD transparent PNGs) so the smooth
-// scaling default is what we want.
-.detail-sprite {
-  width: 144px;
-  height: 144px;
-  object-fit: contain;
-}
-
-.sprite-row {
-  // vertical stack — normal first, shiny below. gendered variant
-  // overrides to row direction so ♂ + ♀ columns sit side-by-side.
+// ─── artwork carousel (sprite-carousel.jsx) ─────────────────────────────────
+// one image at a time with ‹ › on the edges. the stage is a fixed square and
+// every variant is stacked inside it, so swapping variants / forms never
+// changes the page height (that was shifting the scroll position).
+.sprite-carousel {
+  --stage: 240px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
   align-items: center;
+  gap: 8px;
   width: 100%;
+}
 
-  // gendered variant: ♂ + ♀ columns side-by-side. each col carries its
-  // own normal + shiny stacked vertically. shrinks the displayed sprite
-  // to 120px so two columns fit within the 280px detail-left grid.
-  &--gendered {
-    flex-direction: row;
-    align-items: flex-start;
-    justify-content: center;
-    gap: 8px;
+.sprite-carousel__stage {
+  position: relative;
+  width: 100%;
+  height: var(--stage);
+  overflow: hidden; // neighbors wait just off each edge, clipped
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: pan-y; // sideways drags are ours (swipe), vertical scrolls the page
+  user-select: none;
+  -webkit-user-select: none;
+}
 
-    .detail-sprite {
-      width: 120px;
-      height: 120px;
-    }
+.sprite-carousel__view {
+  position: relative;
+  width: var(--stage);
+  height: var(--stage);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+  -webkit-tap-highlight-color: transparent;
+}
+
+// position (translate) + visibility come inline from useSlide()
+.sprite-carousel__slot,
+.sprite-modal__slot {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.sprite-carousel__img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  -webkit-user-drag: none;
+  &.is-retro { image-rendering: pixelated; image-rendering: crisp-edges; }
+}
+
+.sprite-carousel__arrow,
+.sprite-modal__arrow {
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0 3px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  font-size: 1.5rem;
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+  cursor: pointer;
+  z-index: 1;
+
+  &--prev { left: 0; }
+  &--next { right: 0; }
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover { color: var(--accent); border-color: var(--accent); }
   }
 
-  &__col {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
-    min-width: 0;
-  }
-
-  // unified pill treatment shared by ♂/♀ gender labels + the shiny
-  // sparkle label. same neutral bg + thin black outline across all
-  // three; only the SYMBOL color differs (♂ blue, ♀ pink, ✨ black).
-  // `font-variant-emoji: text` belt-and-suspenders alongside the
-  // U+FE0E variation selector in the JSX — ios otherwise picks the
-  // emoji presentation for ♂/♀ whose glyph metrics blow past the
-  // pill outline. min-height + generous line-height give breathing
-  // room on devices that still render the glyphs slightly tall.
-  &__gender,
-  &__shiny-label {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: .95rem;
-    font-weight: var(--fw-bold);
-    line-height: 1.3;
-    min-height: 26px;
-    padding: 4px 12px;
-    border-radius: 999px;
-    background: var(--bg-card);
-    border: 1px solid #111;
-    font-variant-emoji: text;
-  }
-
-  &__gender {
-    color: #5b8dd9; // male blue
-
-    &--f {
-      color: #d34f7a; // female pink
-    }
-  }
-
-  &__shiny-label {
-    color: #111; // black sparkle (svg inherits currentColor)
-  }
-
-  // placeholder variant: matches the shiny-label's exact box geometry
-  // so the normal sprite's column ends up the same height as the
-  // shiny one when sprite-row flips to side-by-side on mobile. only
-  // ever rendered when a shiny exists; desktop hides it (columns
-  // stack and the spacer would just add an awkward bottom gap).
-  &__shiny-label--placeholder {
-    display: none;
-  }
-
-  // wrapper for the shiny stack in non-gendered mode — keeps the label
-  // centered above the sprite (gendered columns already flex-column so
-  // they don't need this wrapper).
-  &__shiny-stack {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-  }
-
-  // group-gate loader — single centered spinner shown while ALL slot
-  // urls in the sprite-row are still decoding. swaps out for the actual
-  // sprites only once everything in the group is ready. occupies the
-  // canvas size of a normal single artwork so the right column doesn't
-  // jump when sprites settle.
-  &__loader {
-    width: 200px;
-    height: 200px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  // same minimal arc as the global <Img> spinner (see .g-img__spinner) — a
-  // single thin accent arc on a transparent track — just sized up for the
-  // 200px canvas.
-  &__spinner {
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    border: 2.5px solid transparent;
-    border-top-color: var(--accent);
-    animation: ptr-spin .65s linear infinite;
+  // touch: bare chevrons pinned to the edges — no button circle, so they
+  // read as "there's more this way" (swipe) rather than "tap here"
+  @media (hover: none) and (pointer: coarse) {
+    width: 32px;
+    height: 64px;
+    border: 0;
+    background: transparent;
+    border-radius: 0;
+    font-size: 2rem;
+    font-weight: var(--fw-medium);
+    color: color-mix(in srgb, var(--text) 45%, transparent);
+    &--prev { left: -4px; }
+    &--next { right: -4px; }
   }
 }
 
+// badges + dots under the image — fixed height so a variant with no badge
+// (e.g. the default form) doesn't shift anything
+.sprite-carousel__meta {
+  min-height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.sprite-carousel__dots {
+  display: flex;
+  gap: 6px;
+}
+.sprite-carousel__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--text) 22%, transparent);
+  transition: background-color .15s ease, scale .15s ease;
+  &.is-on { background: var(--accent); scale: 1.3; }
+}
+
+// ♂ / ♀ / shiny pills — neutral pill, thin black outline; only the symbol
+// color differs. `font-variant-emoji: text` + the U+FE0E in the jsx keep ios
+// from swapping ♂/♀ for tall color emoji.
+.slot-badges {
+  display: flex;
+  gap: 6px;
+  min-height: 26px;
+}
+.slot-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  padding: 2px 12px;
+  border-radius: 999px;
+  background: var(--bg-card);
+  border: 1px solid #111;
+  font-size: .95rem;
+  font-weight: var(--fw-bold);
+  line-height: 1.3;
+  font-variant-emoji: text;
+
+  &--male   { color: #5b8dd9; }
+  &--female { color: #d34f7a; }
+  &--shiny  { color: var(--text); font-size: .74rem; text-transform: uppercase; letter-spacing: .06em; }
+  &--icon   { color: #111; font-size: .95rem; }
+  &--default { color: var(--text-muted); font-size: .74rem; text-transform: uppercase; letter-spacing: .06em; }
+}
 
 .sprite-label {
   font-size: .65rem;
@@ -334,7 +362,7 @@
   color: var(--text);
 }
 
-// horizontal gender-ratio bar — shown under the sprite-row for any
+// horizontal gender-ratio bar — shown under the artwork carousel for any
 // non-genderless mon. two colored segments sized by flex-basis (male
 // blue, female pink) reinforce the M/F columns when the species also
 // has a visible gender variant; for single-gender mons the bar
@@ -806,95 +834,34 @@
     }
   }
 
+  // every variant stacked in one fixed square; only the current one shows
   &__stage {
     position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     width: 100%;
-    min-height: 260px;
+    height: min(320px, 72vw);
+    overflow: hidden;
+    touch-action: pan-y;
+    user-select: none;
+    -webkit-user-select: none;
   }
+
+  &__slot { inset: 0 40px; }
 
   &__img {
-    max-width: 320px;
-    max-height: 320px;
-    width: auto;
-    height: auto;
+    width: 100%;
+    height: 100%;
     object-fit: contain;
-    image-rendering: -webkit-optimize-contrast;
-    animation: modal-pop .2s ease;
+    -webkit-user-drag: none;
+    &.is-retro { image-rendering: pixelated; image-rendering: crisp-edges; }
   }
 
-  &__arrow {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    border: 1px solid var(--border);
-    background: var(--bg-card);
-    color: var(--text-muted);
-    font-size: 1.6rem;
-    font-weight: var(--fw-semibold);
-    line-height: 1;
-    cursor: pointer;
-    transition: color .15s ease, border-color .15s ease, background-color .15s ease, transform .15s ease;
-
-    &--prev { left: 0; }
-    &--next { right: 0; }
-
-    @media (hover: hover) and (pointer: fine) {
-      &:hover {
-        color: var(--accent);
-        border-color: var(--accent);
-      }
-    }
-
-    &:active { transform: translateY(-50%) scale(.92); color: var(--accent); border-color: var(--accent); }
-  }
-
-  // mirrors the .sprite-row__shiny-label pill geometry so the badge in
-  // the modal feels identical to the inline label on the detail page.
+  // same .slot-badge pills as the page's carousel
   &__badges {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     min-height: 28px;
-  }
-
-  &__pill {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: .95rem;
-    font-weight: var(--fw-bold);
-    line-height: 1.3;
-    min-height: 26px;
-    padding: 4px 14px;
-    border-radius: 999px;
-    background: var(--bg-card);
-    border: 1px solid #111;
-    font-variant-emoji: text;
-
-    &--male    { color: #5b8dd9; }
-    &--female  { color: #d34f7a; }
-    // "shiny" as plain text rather than the ✨ glyph — the sparkle is
-    // near-invisible against the white pill bg, especially on retro /
-    // ereader themes. var(--text) auto-resolves to the theme's primary
-    // foreground (black on light / ereader, off-white on dark, etc.)
-    // so it reads cleanly everywhere.
-    &--shiny {
-      color: var(--text);
-      font-size: .78rem;
-      text-transform: uppercase;
-      letter-spacing: .06em;
-    }
-    &--default { color: var(--text-muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; }
   }
 
   &__dots {
@@ -907,6 +874,8 @@
   &__dot {
     width: 8px;
     height: 8px;
+    padding: 0;
+    border: 0;
     border-radius: 50%;
     background: color-mix(in srgb, var(--text) 22%, transparent);
     cursor: pointer;
@@ -914,20 +883,8 @@
 
     &.is-active {
       background: var(--accent);
-      transform: scale(1.2);
+      scale: 1.3;
     }
-  }
-}
-
-// tapping any sprite in the detail page's sprite-row should feel
-// interactive. cursor + subtle scale-up on hover communicate that.
-.detail-artwork,
-.detail-sprite {
-  cursor: zoom-in;
-  transition: transform .2s ease;
-
-  @media (hover: hover) and (pointer: fine) {
-    &:hover { transform: scale(1.04); }
   }
 }
 
@@ -1107,7 +1064,8 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  width: 88px;
+  // min-width so a long condition widens the arrow instead of breaking a word
+  min-width: 88px;
   flex-shrink: 0;
 
   span {
@@ -1115,7 +1073,9 @@
     color: var(--text-subtle);
     text-align: center;
     white-space: normal;
-    word-break: break-word;
+    word-break: normal;
+    overflow-wrap: normal;
+    hyphens: none;
   }
 
   &--mega {
@@ -1131,7 +1091,10 @@
   align-items: center;
   gap: 6px;
   padding: 10px;
-  width: 112px;
+  // min-width, not width: a long name widens the card instead of breaking
+  // mid-word — the chain side-scrolls, so extra width is fine.
+  min-width: 112px;
+  flex: none;
   box-sizing: border-box;
   background: var(--bg);
   border: 2px solid var(--border);
@@ -1156,7 +1119,10 @@
     text-align: center;
     text-transform: capitalize;
     color: var(--text);
-    word-break: break-word;
+    // wrap only between words (e.g. "mega charizard x"), never inside one
+    word-break: normal;
+    overflow-wrap: normal;
+    hyphens: none;
   }
 }
 
